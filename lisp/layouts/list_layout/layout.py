@@ -29,7 +29,7 @@ from lisp.cues.cue import Cue, CueState, CueAction
 from lisp.cues.media_cue import MediaCue
 from lisp.layouts.cue_layout import CueLayout
 from lisp.layouts.list_layout.control_buttons import ControlButtons
-from lisp.layouts.list_layout.cue_list_model import CueListModel, \
+from lisp.layouts.list_layout.cue_list_model import CueTreeModel, \
     PlayingMediaCueModel
 from lisp.layouts.list_layout.cue_list_view import CueListView
 from lisp.layouts.list_layout.info_panel import InfoPanel
@@ -69,7 +69,7 @@ class ListLayout(QWidget, CueLayout):
         self.setLayout(QGridLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
 
-        self._model_adapter = CueListModel(self._cue_model)
+        self._model_adapter = CueTreeModel(self._cue_model)
         self._model_adapter.item_added.connect(self.__cue_added)
         self._model_adapter.item_removed.connect(self.__cue_removed)
 
@@ -148,8 +148,8 @@ class ListLayout(QWidget, CueLayout):
 
         # CUE VIEW (center left)
         self.listView = CueListView(self._model_adapter, self)
-        self.listView.itemDoubleClicked.connect(self.double_clicked)
-        self.listView.currentItemChanged.connect(self.__current_changed)
+        #self.listView.itemDoubleClicked.connect(self.double_clicked)
+        #self.listView.currentItemChanged.connect(self.__current_changed)
         self.listView.context_event.connect(self.context_event)
         self.listView.key_event.connect(self.onKeyPressEvent)
         self.layout().addWidget(self.listView, 1, 0, 1, 2)
@@ -382,7 +382,7 @@ class ListLayout(QWidget, CueLayout):
     def __current_changed(self, new_item, current_item):
         try:
             index = self.listView.indexOfTopLevelItem(new_item)
-            cue = self.model_adapter.item(index)
+            cue = self.model_adapter.get((index, None))
             self.infoPanel.cue_changed(cue)
         except IndexError:
             self.infoPanel.cue_changed(None)
@@ -400,7 +400,7 @@ class ListLayout(QWidget, CueLayout):
         try:
             next_index = cue.index + 1
             if next_index < len(self._model_adapter):
-                next_cue = self._model_adapter.item(next_index)
+                next_cue = self._model_adapter.get(next_index)
                 next_cue.execute()
 
                 if self._auto_continue and next_cue == self.current_cue():

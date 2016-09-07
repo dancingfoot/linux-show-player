@@ -118,12 +118,12 @@ class Application(metaclass=Singleton):
             plugins.reset_plugins()
 
             self._app_conf.clear()
-            self._cue_model.reset()
+            self._cue_model.clear()
 
             self._layout.finalize()
             self._layout = None
             self._memento_model = None
-            self._cue_model.reset()
+            self._cue_model.clear()
 
     def finalize(self):
         modules.terminate_modules()

@@ -16,15 +16,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
+
 from lisp.core.model import Model
 from lisp.cues.cue import Cue
 
 
 class CueModel(Model):
-    """Simple model to store cue(s), as (cue.id, cue) pairs.
+    """Model to store cue(s) by cue_id.
 
-    The model can be iterated to retrieve the cues, to get id-cue pairs
-    use the items() function, to get only the id(s) use the keys() function.
+    Internally use a python dictionary, so get/set/del methods are O(1).
     """
 
     def __init__(self):
@@ -51,19 +51,19 @@ class CueModel(Model):
         return self.__cues.get(cue_id, default)
 
     def items(self):
-        """Return a set-like object proving a view on model items (id, cue)"""
+        """Return a view on model items (cue_id, cue)."""
         return self.__cues.items()
 
     def keys(self):
-        """Return a set-like object proving a view on of model keys (cue id)"""
+        """Return a view on of model keys (cue_id)."""
         return self.__cues.keys()
 
-    def reset(self):
+    def clear(self):
         self.__cues.clear()
-        self.model_reset.emit()
+        self.cleared.emit()
 
     def filter(self, cue_class=Cue):
-        """Return an iterator over cues that are instances of the given class"""
+        """Filter cue by class (subclasses are included)."""
         for cue in self.__cues.values():
             if isinstance(cue, cue_class):
                 yield cue

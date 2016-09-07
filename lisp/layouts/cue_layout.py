@@ -24,8 +24,7 @@ from PyQt5.QtWidgets import QAction, QMenu, qApp
 from lisp.core.actions_handler import MainActionsHandler
 from lisp.core.signal import Signal
 from lisp.cues.cue import Cue, CueAction
-from lisp.layouts.cue_layout_actions import CueUpdateAction, \
-    CuesUpdateAction
+from lisp.layouts.cue_layout_actions import CueUpdateAction, CuesUpdateAction
 from lisp.layouts.cue_menu_registry import CueMenuRegistry
 from lisp.ui.mainwindow import MainWindow
 from lisp.ui.settings.cue_settings import CueSettings
@@ -66,7 +65,7 @@ class CueLayout:
         """
         if self.model_adapter:
             try:
-                return self.model_adapter.item(self.current_index())
+                return self.model_adapter.get((self.current_index(), None))
             except IndexError:
                 pass
 

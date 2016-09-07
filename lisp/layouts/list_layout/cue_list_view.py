@@ -21,6 +21,7 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSignal, Qt, QDataStream, QIODevice, \
     QT_TRANSLATE_NOOP
 from PyQt5.QtGui import QKeyEvent, QContextMenuEvent
+from PyQt5.QtWidgets import QTreeView
 from PyQt5.QtWidgets import QTreeWidget, QHeaderView, qApp
 
 from lisp.core.signal import Connection
@@ -34,7 +35,48 @@ from lisp.layouts.list_layout.listwidgets import CueStatusIcon, PreWaitWidget, \
 from lisp.ui.ui_utils import translate
 
 
-class CueListView(QTreeWidget):
+class CueListView(QTreeView):
+
+    key_event = pyqtSignal(QKeyEvent)
+    context_event = pyqtSignal(QContextMenuEvent)
+    drop_move_event = QtCore.pyqtSignal(int, int)
+    drop_copy_event = QtCore.pyqtSignal(int, int)
+
+    def __init__(self, model, parent=None):
+        """
+        :type model: lisp.layouts.list_layout.cue_list_model.CueTreeModel
+        """
+        super().__init__(parent)
+        self.setModel(model)
+
+        self.setSelectionMode(self.SingleSelection)
+        self.setDragDropMode(self.InternalMove)
+        self.setAlternatingRowColors(True)
+        self.setVerticalScrollMode(self.ScrollPerItem)
+
+        self.setIndentation(0)
+
+        self.verticalScrollBar().rangeChanged.connect(self.__update_range)
+
+        self.__range_guard = False
+
+    def keyPressEvent(self, event):
+        self.key_event.emit(event)
+
+        if qApp.keyboardModifiers() == Qt.ControlModifier:
+            # Prevent items to be deselected
+            event.ignore()
+        else:
+            super().keyPressEvent(event)
+
+    def __update_range(self, min_, max_):
+        if not self.__range_guard:
+            self.__range_guard = True
+            self.verticalScrollBar().setMaximum(max_ + 1)
+            self.__range_guard = False
+
+
+class _CueListView(QTreeWidget):
 
     key_event = pyqtSignal(QKeyEvent)
     context_event = pyqtSignal(QContextMenuEvent)
@@ -52,14 +94,14 @@ class CueListView(QTreeWidget):
 
     def __init__(self, cue_model, parent=None):
         """
-        :type cue_model: lisp.layouts.list_layout.cue_list_model.CueListModel
+        :type cue_model: lisp.layouts.list_layout.cue_list_model.CueTreeModel
         """
         super().__init__(parent)
         self._model = cue_model
         self._model.item_added.connect(self.__cue_added, Connection.QtQueued)
         self._model.item_moved.connect(self.__cue_moved, Connection.QtQueued)
         self._model.item_removed.connect(self.__cue_removed, Connection.QtQueued)
-        self._model.model_reset.connect(self.__model_reset)
+        self._model.cleared.connect(self.__model_reset)
         self.__item_moving = False
 
         self.setHeaderLabels(
@@ -97,7 +139,7 @@ class CueListView(QTreeWidget):
             new_index = len(self._model)
 
         if qApp.keyboardModifiers() == Qt.ControlModifier:
-            cue = self._model.item(start_index)
+            cue = self._model.get(start_index)
             new_cue = CueFactory.clone_cue(cue)
 
             self._model.insert(new_cue, new_index)
@@ -141,7 +183,7 @@ class CueListView(QTreeWidget):
         item = CueListItem(cue)
         item.setFlags(item.flags() & ~Qt.ItemIsDropEnabled)
 
-        self.insertTopLevelItem(cue.index, item)
+        self.insertTopLevelItem(cue.index[0], item)
         self.__init_item(item, cue)
 
         # Select the added item and scroll to it
@@ -154,12 +196,12 @@ class CueListView(QTreeWidget):
 
         self.insertTopLevelItem(end, item)
         self.setCurrentItem(item)
-        self.__init_item(item, self._model.item(end))
+        self.__init_item(item, self._model.get(end))
 
     def __cue_removed(self, cue):
-        self.takeTopLevelItem(cue.index)
+        self.takeTopLevelItem(cue.index[0])
 
-        index = cue.index
+        index = cue.index[0]
         if index > 0:
             index -= 1
         self.setCurrentIndex(self.model().index(index, 0))

@@ -24,7 +24,7 @@ from lisp.core.signal import Signal
 
 
 class ModelAdapter(ProxyModel):
-    """Base-class for mutable ProxyModel(s) with index-based operations"""
+    """Base ProxyModel(s) that allow index-based operations"""
 
     def __init__(self, model):
         super().__init__(model)
@@ -35,7 +35,7 @@ class ModelAdapter(ProxyModel):
         pass
 
     @abstractmethod
-    def item(self, index):
+    def get(self, index):
         pass
 
     @abstractmethod

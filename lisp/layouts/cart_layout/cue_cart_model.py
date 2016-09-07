@@ -53,7 +53,7 @@ class CueCartModel(ModelAdapter):
 
         return n + 1
 
-    def item(self, index):
+    def get(self, index):
         index = self.flat(index)
         return self.__cues.get(index)
 
@@ -119,9 +119,9 @@ class CueCartModel(ModelAdapter):
         self.__cues.pop(item.index)
         self.item_removed.emit(item)
 
-    def _model_reset(self):
+    def _cleared(self):
         self.__cues.clear()
-        self.model_reset.emit()
+        self.cleared.emit()
 
     def __iter__(self):
         return iter(self.__cues.values())

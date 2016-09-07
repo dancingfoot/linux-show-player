@@ -88,7 +88,6 @@ class Cue(HasProperties):
     _type_ = Property()
     id = Property()
     name = Property(default='Untitled')
-    index = Property(default=-1)
     description = Property(default='')
     stylesheet = Property(default='')
     duration = Property(default=0)
@@ -96,6 +95,10 @@ class Cue(HasProperties):
     pre_wait = Property(default=0)
     post_wait = Property(default=0)
     next_action = Property(default=CueNextAction.DoNothing.value)
+
+    index = Property(default=-1)
+    parent = Property()
+    children = Property(default=[])
 
     CueActions = (CueAction.Start, )
 
@@ -153,7 +156,7 @@ class Cue(HasProperties):
                 self.pause()
 
     @async
-    @synchronized_method(blocking=True)
+    @synchronized_method(blocking=False)
     def start(self):
         """Start the cue.
 
@@ -166,7 +169,7 @@ class Cue(HasProperties):
         # error->start.
         if do_wait and not self.__pre_wait():
             # self.__pre_wait() is executed only if do_wait is True
-            # if self.__pre_wait() return False, the wait is been interrupted
+            # if self.__pre_wait() return False, the wait as been interrupted
             # so the cue doesn't start.
             return
 
@@ -258,3 +261,6 @@ class Cue(HasProperties):
         self.end.disconnect(self.next.emit)
         if next_action == CueNextAction.AutoFollow.value:
             self.end.connect(self.next.emit)
+
+    def __iter__(self):
+        pass

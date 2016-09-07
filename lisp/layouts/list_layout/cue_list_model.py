@@ -17,78 +17,122 @@
 # You should have received a copy of the GNU General Public License
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
+from PyQt5.QtCore import Qt, QModelIndex, QAbstractItemModel
+from lisp.core.qmeta import QABCMeta
+
 from lisp.core.model_adapter import ModelAdapter
 from lisp.core.proxy_model import ReadOnlyProxyModel
 from lisp.cues.media_cue import MediaCue
+from lisp.layouts.list_layout.node import Node, CueNode
 
 
-class CueListModel(ModelAdapter):
-
+class CueTreeModel(ModelAdapter, QAbstractItemModel, metaclass=QABCMeta):
     def __init__(self, model):
-        super().__init__(model)
-        self.__cues = []
+        ModelAdapter.__init__(self, model)
+        QAbstractItemModel.__init__(self)
 
-    def item(self, index):
-        return self.__cues[index]
+        self._root = Node()
+
+    def __iter__(self):
+        for child in self._root:
+            yield from child.cues()
+
+    def rowCount(self, parent):
+        if not parent.isValid():
+            return len(self._root)
+
+        return len(parent.internalPointer())
+
+    def columnCount(self, parent):
+        return 1
+
+    def data(self, index, role):
+        if not index.isValid():
+            return None
+
+        node = index.internalPointer()
+        if role == Qt.DisplayRole or role == Qt.EditRole:
+            if index.column() == 0:
+                return node.cue.name
+
+    def headerData(self, section, orientation, role):
+        if orientation == Qt.Horizontal:
+            if role == Qt.DisplayRole:
+                if section == 0:
+                    return 'Name'
+
+    def flags(self, index):
+        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+    def parent(self, index):
+        parentNode = self.node(index).parent()
+
+        if parentNode is self._root:
+            return QModelIndex()
+
+        return self.createIndex(parentNode.row(), 0, parentNode)
+
+    def index(self, row, column, parent):
+        node = self.node(parent)[row]
+
+        if node is not None:
+            return self.createIndex(row, column, node)
+        else:
+            return QModelIndex()
+
+    def node(self, index):
+        if index.isValid():
+            node = index.internalPointer()
+            if node is not None:
+                return node
+
+        return self._root
+
+    def get(self, index):
+        pass
 
     def insert(self, item, index):
         item.index = index
         self.add(item)
 
     def pop(self, index):
-        cue = self.__cues[index]
+        cue = self.get(index)
         self.model.remove(cue)
         return cue
 
     def move(self, old_index, new_index):
-        if old_index != new_index:
-            cue = self.__cues.pop(old_index)
-            self.__cues.insert(new_index, cue)
+        raise NotImplemented
 
-            if old_index < new_index:
-                min_index = old_index
-                max_index = new_index
-            else:
-                min_index = new_index
-                max_index = old_index
-
-            self._update_indices(min_index, max_index + 1)
-
-        self.item_moved.emit(old_index, new_index)
-
-    def _model_reset(self):
-        self.__cues.clear()
-        self.model_reset.emit()
+    def _cleared(self):
+        self._root.clear()
+        self.cleared.emit()
 
     def _item_added(self, item):
-        if not isinstance(item.index, int) or not 0 <= item.index <= len(self.__cues):
-            item.index = len(self.__cues)
+        node_row = item.index
+        parent_cue = self.model.get(item.parent)
 
-        self.__cues.insert(item.index, item)
-        self._update_indices(item.index)
+        if parent_cue is None:
+            parent_index = QModelIndex()
+        else:
+            # TODO
+            parent_index = QModelIndex()
+
+        parent_node = self.node(parent_index)
+
+        if not 0 <= node_row <= len(parent_node):
+            node_row = len(parent_node)
+
+        self.beginInsertRows(parent_index, node_row, node_row)
+        parent_node.insert_child(node_row, CueNode(item))
+        self.endInsertRows()
 
         self.item_added.emit(item)
 
     def _item_removed(self, item):
-        self.__cues.pop(item.index)
-        self._update_indices(item.index)
-
         self.item_removed.emit(item)
-
-    def _update_indices(self, start, stop=-1):
-        """Update the indices of cues from start to stop-1"""
-        if not 0 <= stop <= len(self.__cues):
-            stop = len(self.__cues)
-
-        for index in range(start, stop):
-            self.__cues[index].index = index
-
-    def __iter__(self):
-        return self.__cues.__iter__()
 
 
 class PlayingMediaCueModel(ReadOnlyProxyModel):
-
     def __init__(self, model):
         super().__init__(model)
         self.__cues = {}
@@ -115,11 +159,11 @@ class PlayingMediaCueModel(ReadOnlyProxyModel):
 
             self.__cues.pop(item.media)
 
-    def _model_reset(self):
+    def _cleared(self):
         for cue in self.__cues:
             self._item_removed(cue)
 
-        self.model_reset.emit()
+        self.cleared.emit()
 
     def _add(self, media):
         if media not in self.__playing:

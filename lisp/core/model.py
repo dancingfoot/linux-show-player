@@ -18,7 +18,7 @@
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
 from abc import abstractmethod
-from collections import Sized, Iterable, Container
+from collections.abc import Sized, Iterable, Container
 
 from lisp.core.signal import Signal
 
@@ -26,25 +26,15 @@ from lisp.core.signal import Signal
 class Model(Sized, Iterable, Container):
     """A model is a data container that provide signal to observe changes.
 
-    The base model do not provide a way to change directly the data,
-    this to remove useless restrictions to models that will store complex
-    objects where attribute changes but not objects directly.
-    Setter methods and signals can be simply implemented in subclass, where
-    needed.
-
-    A model should be as generic as possible in the way its store data, working
-    like a normal data structure, for more ui-oriented tasks a ModelAdapter
-    should be used.
-
-    __iter__ must provide an iterator over the items
-    __len__ must return the number of stored items
-    __contains__ must return True/False if the given item is in/not in the model
+    Subclasses can provide:
+     * get() get an item by index/key
+     * pop() remove an return an item by index/key
     """
 
     def __init__(self):
         self.item_added = Signal()
         self.item_removed = Signal()
-        self.model_reset = Signal()
+        self.cleared = Signal()
 
     @abstractmethod
     def add(self, item):
@@ -55,7 +45,7 @@ class Model(Sized, Iterable, Container):
         pass
 
     @abstractmethod
-    def reset(self):
+    def clear(self):
         pass
 
 
