@@ -28,7 +28,7 @@ _synchronized_meta_lock = Lock()
 def async(target):
     """Decorator. Make a function asynchronous.
 
-    The decorated function is executed in a differed thread.
+    The target function is executed in a differed thread.
     """
 
     @wraps(target)
@@ -41,7 +41,7 @@ def async(target):
 def async_in_pool(pool):
     """Decorator. Make a function asynchronous in a specified pool.
 
-    The decorated function is executed in the specified threads-pool.
+    The target function is executed in the specified threads-pool.
 
     .. Usage::
 

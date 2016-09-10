@@ -57,7 +57,7 @@ class CueCartModel(ModelAdapter):
         index = self.flat(index)
         return self.__cues.get(index)
 
-    def insert(self, item, index):
+    def insert(self, item, row=None):
         index = self.flat(index)
 
         if index not in self.__cues:

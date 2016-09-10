@@ -65,19 +65,19 @@ class CueLayout:
         """
         if self.model_adapter:
             try:
-                return self.model_adapter.get((self.current_index(), None))
+                return self.model_adapter.get(*self.current_index())
             except IndexError:
                 pass
 
     def current_index(self):
-        """Return the current index, or -1."""
-        return -1
+        """Return the current index, or (-1, None)."""
+        return -1, None
 
     def set_current_cue(self, cue):
         """Set the current cue."""
-        self.set_current_index(cue.index)
+        self.set_current_index(cue.index, cue.parent)
 
-    def set_current_index(self, index):
+    def set_current_index(self, row, parent=None):
         """Set the current cue by index"""
 
     def go(self, action=CueAction.Default, advance=1):

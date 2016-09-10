@@ -56,6 +56,8 @@ class Node(Sequence):
         if self._parent is not None:
             return self._parent.index(self)
 
+        return -1
+
     def add_child(self, child):
         """Append a child.
 
@@ -72,7 +74,7 @@ class Node(Sequence):
         :param child: The node to be added as child.
         :type child: Node
         """
-        if not 0 <= index < len(self._children):
+        if not 0 <= index <= len(self._children):
             index = len(self._children)
 
         self._children.insert(index, child)
@@ -127,7 +129,7 @@ class CueNode(Node):
     """Node extension that handle cue(s) as data type.
 
     .. warning:
-        Only CueNode(s) objects can be used as children.
+        Only CueNode(s) objects can be used as parent and children.
     """
 
     def __init__(self, cue, parent=None):
@@ -151,13 +153,12 @@ class CueNode(Node):
         return super().parent()
 
     def set_parent(self, parent):
-        super().set_parent(parent)
+        if not isinstance(parent, (CueNode, None.__class__)):
+            raise TypeError('CueNode parent must be a CueNode not {}'.format(
+                parent.__class__.__name__))
 
-        if isinstance(parent, CueNode):
-            self._cue.parent = parent.cue.id
-        else:
-            # The root may not be a CueNode
-            self._cue.parent = None
+        super().set_parent(parent)
+        self._cue.parent = parent.cue.id if parent is not None else None
 
     def insert_child(self, index, child):
         if not isinstance(child, CueNode):
@@ -165,7 +166,7 @@ class CueNode(Node):
                 child.__class__.__name__))
 
         super().insert_child(index, child)
-        child.cue.index = index
+        self._sync_cues_indices(index)
 
     def remove_child(self, index):
         if super().remove_child(index):
@@ -180,11 +181,9 @@ class CueNode(Node):
         :type stop: int
         """
 
-        if 0 <= stop <= len(self._children):
+        if not 0 <= stop <= len(self._children):
             stop = len(self._children)
 
-        if start <= stop:
-            return
-
-        for index in range(start, stop):
-            self._children[index].cue.index = index
+        if start < stop:
+            for index in range(start, stop):
+                self._children[index].cue.index = index

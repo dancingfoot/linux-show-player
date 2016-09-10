@@ -43,6 +43,7 @@ from lisp.ui.settings.pages.cue_general import CueGeneralSettings
 from lisp.ui.settings.pages.media_cue_settings import MediaCueSettings
 from lisp.utils.configuration import config
 from lisp.ui.ui_utils import translate
+from lisp.utils.modeltest import ModelTest
 
 AppSettings.register_settings_widget(ListLayoutSettings)
 
@@ -207,25 +208,41 @@ class ListLayout(QWidget, CueLayout):
     def model_adapter(self):
         return self._model_adapter
 
-    def current_index(self):
-        return self.listView.currentIndex().row()
+    def current_cue(self):
+        """Return the current cue, or None.
 
-    def set_current_index(self, index):
-        if self._end_list == EndListBehavior.Restart:
+        :rtype: lisp.cues.cue.Cue
+        """
+        if self.listView.selectedIndexes():
+            return self.listView.selectedIndexes()[0].internalPointer().cue
+
+    def current_index(self):
+        cue = self.listView.currentIndex().internalPointer().cue
+        return cue.index, cue.parent
+
+    def set_current_index(self, row, parent=None):
+        '''if self._end_list == EndListBehavior.Restart:
             index %= len(self.model_adapter)
 
         if 0 <= index < self.listView.topLevelItemCount():
             next_item = self.listView.topLevelItem(index)
-            self.listView.setCurrentItem(next_item)
+            self.listView.setCurrentItem(next_item)'''
 
     def go(self, action=CueAction.Default, advance=1):
         current_cue = self.current_cue()
-        if current_cue is not None:
-            current_cue.execute(action)
-            self.cue_executed.emit(current_cue)
 
-            if self._auto_continue:
-                self.set_current_index(self.current_index() + advance)
+        if current_cue is not None:
+            self._model_adapter.move(current_cue,
+                                     current_cue.index + 1,
+                                     current_cue.parent)
+
+            if current_cue is not None:
+                current_cue.execute(action)
+                self.cue_executed.emit(current_cue)
+
+                if self._auto_continue:
+                    # TODO
+                    pass
 
     def current_item(self):
         if self._model_adapter:

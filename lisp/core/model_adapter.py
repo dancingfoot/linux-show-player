@@ -31,17 +31,17 @@ class ModelAdapter(ProxyModel):
         self.item_moved = Signal()
 
     @abstractmethod
-    def insert(self, item, index):
+    def insert(self, item, row, parent=None):
         pass
 
     @abstractmethod
-    def get(self, index):
+    def get(self, row, parent=None):
         pass
 
     @abstractmethod
-    def pop(self, index):
+    def pop(self, row, parent=None):
         pass
 
     @abstractmethod
-    def move(self, old_index, new_index):
+    def move(self, item, row, parent=None):
         pass
