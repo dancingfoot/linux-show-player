@@ -47,12 +47,18 @@ class Node(Sequence):
         return self._parent
 
     def set_parent(self, parent):
-        """
-        :type parent: Node
+        """Set the node parent.
+
+        :param parent: The new parent
+        :type parent: Node, None
         """
         self._parent = parent
 
     def row(self):
+        """
+        :return: the node position/index in the parent
+        :rtype: int
+        """
         if self._parent is not None:
             return self._parent.index(self)
 
@@ -67,11 +73,11 @@ class Node(Sequence):
         self.insert_child(len(self._children), child)
 
     def insert_child(self, index, child):
-        """Insert a child to this node.
+        """Insert a child to a specif index.
 
-        :param index: Index where to insert the child.
+        :param index: Index where to insert the child
         :type index: int
-        :param child: The node to be added as child.
+        :param child: The node to insert
         :type child: Node
         """
         if not 0 <= index <= len(self._children):
@@ -80,55 +86,47 @@ class Node(Sequence):
         self._children.insert(index, child)
         child.set_parent(self)
 
-    def remove_child(self, index):
+    def remove(self, index):
         """Remove the child at the give index, if exists.
 
-        :param index: index of the child to be removed.
+        :param index: index of the child to be removed
         :type index: int
-        :return: True if a child as ben remove, False otherwise.
-        :rtype bool
         """
         if abs(index) < len(self._children):
             child = self._children.pop(index)
             child.set_parent(None)
-            return True
 
-        return False
+    def remove_child(self, child):
+        """Remove the given child, if exists.
+
+        :param child: The child node to be removed
+        :type child: Node
+        """
+        self._children.remove(child)
+        child.set_parent(None)
 
     def clear(self):
+        """Remove all the children from the node."""
         for _ in range(len(self._children)):
-            self.remove_child(-1)
+            self.remove(-1)
 
-    def child_index(self, child):
-        return self._children.index(child)
+    def index_path(self):
+        """
+        :return: A list of indices representing the node path from the root.
+        :rtype: list[int]
+        """
+        chain = []
+        if self._parent is not None:
+            chain.extend(self._parent.index_path())
+            chain.append(self.row())
 
-    def log(self, prefix='', root=False, last=False):
-        output = prefix
-
-        if not root:
-            output += '├── ' if not last else '└── '
-        output += str(self) + '\n'
-
-        for child in self._children[:-1]:
-            if not root:
-                output += child.log(prefix=prefix + '|\t')
-            else:
-                output += child.log(prefix=prefix)
-
-        if self._children:
-            if not (root or last):
-                prefix += '|'
-            if not root:
-                prefix += '\t'
-            output += self._children[-1].log(prefix=prefix, last=True)
-
-        return output
+        return chain
 
 
 class CueNode(Node):
     """Node extension that handle cue(s) as data type.
 
-    .. warning:
+    .. Warning:
         Only CueNode(s) objects can be used as parent and children.
     """
 
@@ -153,6 +151,11 @@ class CueNode(Node):
         return super().parent()
 
     def set_parent(self, parent):
+        """Set the node parent.
+
+        :param parent: The new parent.
+        :type parent: CueNode
+        """
         if not isinstance(parent, (CueNode, None.__class__)):
             raise TypeError('CueNode parent must be a CueNode not {}'.format(
                 parent.__class__.__name__))
@@ -161,6 +164,13 @@ class CueNode(Node):
         self._cue.parent = parent.cue.id if parent is not None else None
 
     def insert_child(self, index, child):
+        """Insert a child to a specif index
+
+        :param index: Index where to insert the child
+        :type index: int
+        :param child: Node child to insert
+        :type child: CueNode
+        """
         if not isinstance(child, CueNode):
             raise TypeError('CueNode children must be CueNode(s) not {}'.format(
                 child.__class__.__name__))
@@ -168,8 +178,8 @@ class CueNode(Node):
         super().insert_child(index, child)
         self._sync_cues_indices(index)
 
-    def remove_child(self, index):
-        if super().remove_child(index):
+    def remove(self, index):
+        if super().remove(index):
             self._sync_cues_indices(index)
 
     def _sync_cues_indices(self, start, stop=-1):
@@ -180,7 +190,6 @@ class CueNode(Node):
         :param stop: End index (excluded)
         :type stop: int
         """
-
         if not 0 <= stop <= len(self._children):
             stop = len(self._children)
 

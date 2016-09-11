@@ -33,10 +33,9 @@ class _FakeCue:
         self.parent = None
 
 
-class CueTreeModel(ModelAdapter, QAbstractItemModel, metaclass=QABCMeta):
+class CueTreeModel(ModelAdapter):
     def __init__(self, model):
-        ModelAdapter.__init__(self, model)
-        QAbstractItemModel.__init__(self)
+        super().__init__(model)
 
         self.__root = CueNode(_FakeCue())
         self.__nodes = {None: self.__root}
@@ -45,153 +44,63 @@ class CueTreeModel(ModelAdapter, QAbstractItemModel, metaclass=QABCMeta):
         for child in self.__root:
             yield from child.cues()
 
-    def rowCount(self, parent):
-        if not parent.isValid():
-            return len(self.__root)
-
-        return len(parent.internalPointer())
-
-    def columnCount(self, parent):
-        return 1
-
-    def data(self, index, role=Qt.DisplayRole):
-        if not index.isValid():
-            return None
-
-        node = index.internalPointer()
-        if role == Qt.DisplayRole or role == Qt.EditRole:
-            if index.column() == 0:
-                return node.cue.name
-
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if orientation == Qt.Horizontal:
-            if role == Qt.DisplayRole:
-                if section == 0:
-                    return 'Name'
-
-    def flags(self, index):
-        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
-
-    def parent(self, index):
-        parent_node = self.node(index).parent()
-
-        if parent_node is self.__root or parent_node is None:
-            return QModelIndex()
-
-        return self.createIndex(parent_node.row(), 0, parent_node)
-
-    def index(self, row, column, parent=QModelIndex()):
-        if self.hasIndex(row, column, parent):
-            return self.createIndex(row, column, self.node(parent)[row])
-
-        return QModelIndex()
-
-    def moveRow(self, src_parent, src_row, dest_parent, dest_child):
-        return self.moveRows(src_parent, src_row, 1, dest_parent, dest_child)
-
-    def moveRows(self, src_parent, src_row, rows, dest_parent, dest_child):
-        # Check if the row is valid
-        if not 0 <= dest_child < len(self.node(dest_parent)):
-            return
-
-        dest_row = dest_child
-        if src_parent == dest_parent:
-            # If a no-op (same index) do nothing
-            if src_row == dest_child:
-                return
-
-            # If moving down (to higher indices) in the same parent we need to
-            # take care of some Qt bullshit, otherwise we get a SEGFAULT
-            if dest_child > src_row:
-                dest_row += rows
-
-        if self.beginMoveRows(src_parent, src_row, rows, dest_parent, dest_row):
-
-            for n in range(src_row, rows):
-                src_row += 1
-                node = self.node(self.index(src_row, 0, src_parent))
-
-                src_parent = self.node(src_parent)
-                src_parent.remove_child(src_row)
-
-                dest_parent = self.node(dest_parent)
-                dest_parent.insert_child(dest_child, node)
-
-            self.endMoveRows()
-            return True
-
-        return False
-
-    def index_by_id(self, id):
-        """
-        :param id: The cue id
-        :type id: str
-        :return: The QModelIndex of the cue
-        :rtype: QModelIndex
-        """
-        node = self.__nodes.get(id)
-        index = self.createIndex(node.row(), 0, node)
-        return index
-
-    def node(self, index):
-        if index.isValid():
-            node = index.internalPointer()
-            if node is not None:
-                return node
-
-        return self.__root
-
     def get(self, row, parent=None):
-        return self.node(self.index_by_id(parent))[row].cue
+        parent_node = self.__nodes.get(parent)
+        if parent_node is not None and 0 <= row < len(parent_node):
+            return parent_node[row].cue
 
     def insert(self, item, row, parent=None):
+        # The actual insert is implemented in _item_added
         item.index = row
         item.parent = parent
         self.add(item)
 
     def pop(self, row, parent=None):
+        # The actual pop/remove is implemented in _item_removed
         cue = self.get(row, parent=parent)
+
+        if cue is None:
+            raise IndexError('Invalid index: {} - {}'.format(row, parent))
+
         self.model.remove(cue)
         return cue
 
-    def move(self, item, dest_row, dest_parent=None):
-        src_parent = self.index_by_id(item.parent)
-        dest_parent = self.index_by_id(dest_parent)
+    def move(self, item, row, parent=None):
+        src_parent = self.__nodes.get(item.parent)
+        parent = self.__nodes.get(parent)
 
-        self.moveRow(src_parent, item.index, dest_parent, dest_row)
+        # Check if the row is valid
+        if 0 <= row < len(parent):
+            return
+
+        if src_parent == parent and item.index == row:
+            # If a no-op (same index) do nothing
+            return
+
+        node = self.__nodes.get(item.id)
+
+        src_parent.remove(item.index)
+        parent.insert_child(row, node)
 
     def _cleared(self):
-        self.beginResetModel()
         self.__root.clear()
-        self.endResetModel()
         self.cleared.emit()
 
     def _item_added(self, item):
-        row = item.index
-        parent_index = self.index_by_id(item.parent)
+        node = CueNode(item)
+        parent_node = self.__nodes.get(item.parent, self.__root)
 
-        parent_node = self.node(parent_index)
-        child_node = CueNode(item)
+        if not 0 <= item.index <= len(parent_node):
+            item.index = len(parent_node)
 
-        if not 0 <= row <= len(parent_node):
-            row = len(parent_node)
-
-        self.beginInsertRows(parent_index, row, row)
-        parent_node.insert_child(row, child_node)
-        self.__nodes[item.id] = child_node
-        self.endInsertRows()
+        parent_node.insert_child(item.index, node)
+        self.__nodes[item.id] = node
 
         self.item_added.emit(item)
 
     def _item_removed(self, item):
-        row = item.index
-        parent_index = self.index_by_id(item.parent)
-        parent_node = self.node(parent_index)
-
-        self.beginRemoveRows(parent_index, row, row)
-        parent_node.remove_child(row)
-        self.__nodes.pop(item.id)
-        self.endRemoveRows()
+        parent_node = self.__nodes.get(item.parent)
+        parent_node.remove(self.__nodes.pop(item.id))
 
         self.item_removed.emit(item)
 

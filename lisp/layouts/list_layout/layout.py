@@ -43,7 +43,6 @@ from lisp.ui.settings.pages.cue_general import CueGeneralSettings
 from lisp.ui.settings.pages.media_cue_settings import MediaCueSettings
 from lisp.utils.configuration import config
 from lisp.ui.ui_utils import translate
-from lisp.utils.modeltest import ModelTest
 
 AppSettings.register_settings_widget(ListLayoutSettings)
 
@@ -208,17 +207,11 @@ class ListLayout(QWidget, CueLayout):
     def model_adapter(self):
         return self._model_adapter
 
-    def current_cue(self):
-        """Return the current cue, or None.
-
-        :rtype: lisp.cues.cue.Cue
-        """
-        if self.listView.selectedIndexes():
-            return self.listView.selectedIndexes()[0].internalPointer().cue
-
     def current_index(self):
-        cue = self.listView.currentIndex().internalPointer().cue
-        return cue.index, cue.parent
+        if self.listView.selectedIndexes():
+            return self.listView.selectedIndexes()[0].row(), None
+
+        return -1, None
 
     def set_current_index(self, row, parent=None):
         '''if self._end_list == EndListBehavior.Restart:
