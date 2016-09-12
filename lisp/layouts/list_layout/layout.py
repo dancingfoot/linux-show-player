@@ -225,17 +225,12 @@ class ListLayout(QWidget, CueLayout):
         current_cue = self.current_cue()
 
         if current_cue is not None:
-            self._model_adapter.move(current_cue,
-                                     current_cue.index + 1,
-                                     current_cue.parent)
+            current_cue.execute(action)
+            self.cue_executed.emit(current_cue)
 
-            if current_cue is not None:
-                current_cue.execute(action)
-                self.cue_executed.emit(current_cue)
-
-                if self._auto_continue:
-                    # TODO
-                    pass
+            if self._auto_continue:
+                # TODO
+                pass
 
     def current_item(self):
         if self._model_adapter:

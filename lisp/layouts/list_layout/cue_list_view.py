@@ -103,7 +103,7 @@ class CueListView(QTreeWidget):
 
             self._model.insert(new_cue, new_index)
         else:
-            self._model.move(self._model.get(start_index), new_index)
+            self._model.move(start_index, None, new_index, None)
 
     def contextMenuEvent(self, event):
         if self.itemAt(event.pos()) is not None:
@@ -150,12 +150,12 @@ class CueListView(QTreeWidget):
         # Ensure that the focus is set
         self.setFocus()
 
-    def __cue_moved(self, start, end):
-        item = self.takeTopLevelItem(start)
+    def __cue_moved(self, old_row, old_parent, new_row, new_parent):
+        item = self.takeTopLevelItem(old_row)
+        self.insertTopLevelItem(new_row, item)
 
-        self.insertTopLevelItem(end, item)
         self.setCurrentItem(item)
-        self.__init_item(item, self._model.get(end))
+        self.__init_item(item, self._model.get(new_row))
 
     def __cue_removed(self, cue):
         self.takeTopLevelItem(cue.index)

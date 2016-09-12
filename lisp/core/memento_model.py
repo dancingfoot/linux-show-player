@@ -69,7 +69,8 @@ class AdapterMementoModel(MementoModel):
         super().__init__(model_adapter, handler)
         self.model.item_moved.connect(self._item_moved)
 
-    def _item_moved(self, old_index, new_index):
+    def _item_moved(self, src_row, src_parent, to_row, to_parent):
         if not self._locked:
-            self._handler.do_action(MoveItemAction(self, self.model, old_index,
-                                                   new_index))
+            self._handler.do_action(MoveItemAction(self, self.model,
+                                                   src_row, src_parent,
+                                                   to_row, to_parent))

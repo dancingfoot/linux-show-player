@@ -28,7 +28,7 @@ class ModelAdapter(ProxyModel):
 
     def __init__(self, model):
         super().__init__(model)
-        self.item_moved = Signal()
+        self.item_moved = Signal()  # (old_row, old_parent, new_row, new_parent)
 
     @abstractmethod
     def insert(self, item, row, parent=None):
@@ -43,5 +43,5 @@ class ModelAdapter(ProxyModel):
         pass
 
     @abstractmethod
-    def move(self, item, row, parent=None):
+    def move(self, src_row, src_parent, to_row, to_parent):
         pass

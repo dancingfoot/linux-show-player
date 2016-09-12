@@ -17,20 +17,16 @@
 # You should have received a copy of the GNU General Public License
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import Qt, QModelIndex, QAbstractItemModel
-from lisp.core.qmeta import QABCMeta
-
 from lisp.core.model_adapter import ModelAdapter
 from lisp.core.proxy_model import ReadOnlyProxyModel
+from lisp.cues.cue_node import CueNode
 from lisp.cues.media_cue import MediaCue
-from lisp.layouts.list_layout.node import Node, CueNode
 
 
 class _FakeCue:
-    def __init__(self):
-        self.id = None
-        self.index = -1
-        self.parent = None
+    id = None
+    index = -1
+    parent = None
 
 
 class CueTreeModel(ModelAdapter):
@@ -65,22 +61,24 @@ class CueTreeModel(ModelAdapter):
         self.model.remove(cue)
         return cue
 
-    def move(self, item, row, parent=None):
-        src_parent = self.__nodes.get(item.parent)
-        parent = self.__nodes.get(parent)
+    def move(self, src_row, src_parent, to_row, to_parent):
+        src_parent = self.__nodes.get(src_parent)
+        to_parent = self.__nodes.get(to_parent)
 
         # Check if the row is valid
-        if 0 <= row < len(parent):
+        if not 0 <= to_row < len(to_parent):
             return
 
-        if src_parent == parent and item.index == row:
+        if src_parent == to_parent and src_row == to_row:
             # If a no-op (same index) do nothing
             return
 
-        node = self.__nodes.get(item.id)
+        node = src_parent[src_row]
 
-        src_parent.remove(item.index)
-        parent.insert_child(row, node)
+        src_parent.remove(src_row)
+        to_parent.insert_child(to_row, node)
+
+        self.item_moved.emit(src_row, src_parent, to_row, to_parent)
 
     def _cleared(self):
         self.__root.clear()

@@ -20,7 +20,7 @@
 from collections.abc import Sequence
 
 
-class Node(Sequence):
+class TreeNode(Sequence):
     """Node to build tree data structures.
 
     Implements the `Sequence` ABC.
@@ -42,7 +42,7 @@ class Node(Sequence):
 
     def parent(self):
         """
-        :rtype: Node
+        :rtype: TreeNode
         """
         return self._parent
 
@@ -50,7 +50,7 @@ class Node(Sequence):
         """Set the node parent.
 
         :param parent: The new parent
-        :type parent: Node, None
+        :type parent: TreeNode, None
         """
         self._parent = parent
 
@@ -68,7 +68,7 @@ class Node(Sequence):
         """Append a child.
 
         :param child: The node to be added as child
-        :type child: Node
+        :type child: TreeNode
         """
         self.insert_child(len(self._children), child)
 
@@ -78,7 +78,7 @@ class Node(Sequence):
         :param index: Index where to insert the child
         :type index: int
         :param child: The node to insert
-        :type child: Node
+        :type child: TreeNode
         """
         if not 0 <= index <= len(self._children):
             index = len(self._children)
@@ -100,7 +100,7 @@ class Node(Sequence):
         """Remove the given child, if exists.
 
         :param child: The child node to be removed
-        :type child: Node
+        :type child: TreeNode
         """
         self._children.remove(child)
         child.set_parent(None)
@@ -121,78 +121,3 @@ class Node(Sequence):
             chain.append(self.row())
 
         return chain
-
-
-class CueNode(Node):
-    """Node extension that handle cue(s) as data type.
-
-    .. Warning:
-        Only CueNode(s) objects can be used as parent and children.
-    """
-
-    def __init__(self, cue, parent=None):
-        super().__init__(parent)
-
-        self._cue = cue
-
-    @property
-    def cue(self):
-        """
-        :rtype: lisp.cues.cue.Cue
-        """
-        return self._cue
-
-    def cues(self):
-        """Iterate over the children cues."""
-        for child in self._children:
-            yield child.cue
-
-    def parent(self):
-        return super().parent()
-
-    def set_parent(self, parent):
-        """Set the node parent.
-
-        :param parent: The new parent.
-        :type parent: CueNode
-        """
-        if not isinstance(parent, (CueNode, None.__class__)):
-            raise TypeError('CueNode parent must be a CueNode not {}'.format(
-                parent.__class__.__name__))
-
-        super().set_parent(parent)
-        self._cue.parent = parent.cue.id if parent is not None else None
-
-    def insert_child(self, index, child):
-        """Insert a child to a specif index
-
-        :param index: Index where to insert the child
-        :type index: int
-        :param child: Node child to insert
-        :type child: CueNode
-        """
-        if not isinstance(child, CueNode):
-            raise TypeError('CueNode children must be CueNode(s) not {}'.format(
-                child.__class__.__name__))
-
-        super().insert_child(index, child)
-        self._sync_cues_indices(index)
-
-    def remove(self, index):
-        if super().remove(index):
-            self._sync_cues_indices(index)
-
-    def _sync_cues_indices(self, start, stop=-1):
-        """Updates the children-cues indices to be in sync.
-
-        :param start: Start index (included)
-        :type start: int
-        :param stop: End index (excluded)
-        :type stop: int
-        """
-        if not 0 <= stop <= len(self._children):
-            stop = len(self._children)
-
-        if start < stop:
-            for index in range(start, stop):
-                self._children[index].cue.index = index

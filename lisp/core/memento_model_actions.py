@@ -90,15 +90,24 @@ class RemoveItemAction(MementoAction):
 
 class MoveItemAction(MementoAction):
 
-    __slots__ = ('__old_index', '__new_index')
+    __slots__ = ('__src_row', '__src_parent', '__to_row', '__to_parent')
 
-    def __init__(self, m_model, model_adapter, old_index, new_index):
+    def __init__(self, m_model, model_adapter, src_row, src_parent, to_row,
+                 to_parent):
         super().__init__(m_model, model_adapter)
-        self.__old_index = old_index
-        self.__new_index = new_index
+        self.__src_row = src_row
+        self.__src_parent = src_parent
+        self.__to_row = to_row
+        self.__to_parent = to_parent
 
     def __undo__(self):
-        self._model.move(self.__new_index, self.__old_index)
+        self._model.move(self.__to_row,
+                         self.__to_parent,
+                         self.__src_row,
+                         self.__src_parent)
 
     def __redo__(self):
-        self._model.move(self.__old_index, self.__new_index)
+        self._model.move(self.__src_row,
+                         self.__src_parent,
+                         self.__to_row,
+                         self.__to_parent)
