@@ -62,21 +62,21 @@ class CueTreeModel(ModelAdapter):
         return cue
 
     def move(self, src_row, src_parent, to_row, to_parent):
-        src_parent = self.__nodes.get(src_parent)
-        to_parent = self.__nodes.get(to_parent)
+        src_parent_node = self.__nodes.get(src_parent)
+        to_parent_node = self.__nodes.get(to_parent)
 
         # Check if the row is valid
-        if not 0 <= to_row < len(to_parent):
+        if not 0 <= to_row < len(to_parent_node):
             return
 
-        if src_parent == to_parent and src_row == to_row:
+        if src_parent_node == to_parent_node and src_row == to_row:
             # If a no-op (same index) do nothing
             return
 
-        node = src_parent[src_row]
+        node = src_parent_node[src_row]
 
-        src_parent.remove(src_row)
-        to_parent.insert_child(to_row, node)
+        src_parent_node.remove_child(src_row)
+        to_parent_node.insert_child(to_row, node)
 
         self.item_moved.emit(src_row, src_parent, to_row, to_parent)
 

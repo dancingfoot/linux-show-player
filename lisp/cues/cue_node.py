@@ -53,12 +53,12 @@ class CueNode(TreeNode):
         :param parent: The new parent.
         :type parent: CueNode
         """
-        if not isinstance(parent, (CueNode, None.__class__)):
+        if not isinstance(parent, CueNode):
             raise TypeError('CueNode parent must be a CueNode not {}'.format(
                 parent.__class__.__name__))
 
         super().set_parent(parent)
-        self._cue.parent = parent.cue.id if parent is not None else None
+        self._cue.parent = parent.cue.id
 
     def insert_child(self, index, child):
         """Insert a child to a specif index
@@ -75,8 +75,8 @@ class CueNode(TreeNode):
         super().insert_child(index, child)
         self._sync_cues_indices(index)
 
-    def remove(self, index):
-        super().remove(index)
+    def remove_child(self, index):
+        super().remove_child(index)
         self._sync_cues_indices(index)
 
     def _sync_cues_indices(self, start, stop=-1):

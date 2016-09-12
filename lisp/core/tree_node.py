@@ -50,9 +50,17 @@ class TreeNode(Sequence):
         """Set the node parent.
 
         :param parent: The new parent
-        :type parent: TreeNode, None
+        :type parent: TreeNode
         """
+        if not isinstance(parent, TreeNode):
+            raise TypeError('TreeNode parent must be a TreeNode not {}'.format(
+                parent.__class__.__name__))
+
         self._parent = parent
+
+    def detach(self):
+        """Set the parent to None."""
+        self._parent = None
 
     def row(self):
         """
@@ -86,7 +94,7 @@ class TreeNode(Sequence):
         self._children.insert(index, child)
         child.set_parent(self)
 
-    def remove(self, index):
+    def remove_child(self, index):
         """Remove the child at the give index, if exists.
 
         :param index: index of the child to be removed
@@ -94,21 +102,21 @@ class TreeNode(Sequence):
         """
         if abs(index) < len(self._children):
             child = self._children.pop(index)
-            child.set_parent(None)
+            child.detach()
 
-    def remove_child(self, child):
+    def remove(self, child):
         """Remove the given child, if exists.
 
         :param child: The child node to be removed
         :type child: TreeNode
         """
         self._children.remove(child)
-        child.set_parent(None)
+        child.detach()
 
     def clear(self):
         """Remove all the children from the node."""
         for _ in range(len(self._children)):
-            self.remove(-1)
+            self.remove_child(-1)
 
     def index_path(self):
         """

@@ -72,6 +72,9 @@ class AddItemAction(MementoAction):
     def __redo__(self):
         self._model.add(self.__item)
 
+    def log(self):
+        return 'Add item'
+
 
 class RemoveItemAction(MementoAction):
 
@@ -87,14 +90,16 @@ class RemoveItemAction(MementoAction):
     def __redo__(self):
         self._model.remove(self.__item)
 
+    def log(self):
+        return 'Remove item'
+
 
 class MoveItemAction(MementoAction):
 
     __slots__ = ('__src_row', '__src_parent', '__to_row', '__to_parent')
 
-    def __init__(self, m_model, model_adapter, src_row, src_parent, to_row,
-                 to_parent):
-        super().__init__(m_model, model_adapter)
+    def __init__(self, m_model, model, src_row, src_parent, to_row, to_parent):
+        super().__init__(m_model, model)
         self.__src_row = src_row
         self.__src_parent = src_parent
         self.__to_row = to_row
@@ -111,3 +116,7 @@ class MoveItemAction(MementoAction):
                          self.__src_parent,
                          self.__to_row,
                          self.__to_parent)
+
+
+    def log(self):
+        return 'Move item'
