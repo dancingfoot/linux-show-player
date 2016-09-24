@@ -18,11 +18,9 @@
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import pyqtSignal, Qt, QDataStream, QIODevice, \
-    QT_TRANSLATE_NOOP
-from PyQt5.QtGui import QKeyEvent, QContextMenuEvent
-from PyQt5.QtWidgets import QTreeView
-from PyQt5.QtWidgets import QTreeWidget, QHeaderView, qApp
+from PyQt5.QtCore import QMimeData, QPoint, pyqtSignal, Qt, QT_TRANSLATE_NOOP
+from PyQt5.QtGui import QDrag, QKeyEvent, QContextMenuEvent
+from PyQt5.QtWidgets import QApplication, QTreeWidget, QHeaderView, qApp
 
 from lisp.core.signal import Connection
 from lisp.cues.cue_factory import CueFactory
@@ -30,8 +28,6 @@ from lisp.layouts.list_layout.cue_list_item import CueListItem
 from lisp.layouts.list_layout.listwidgets import CueStatusIcon, PreWaitWidget, \
     CueTimeWidget, NextActionIcon, PostWaitWidget
 
-
-# TODO: here we should build a custom qt model/view
 from lisp.ui.ui_utils import translate
 
 
@@ -61,7 +57,9 @@ class CueListView(QTreeWidget):
         self._model.item_moved.connect(self.__cue_moved, Connection.QtQueued)
         self._model.item_removed.connect(self.__cue_removed, Connection.QtQueued)
         self._model.cleared.connect(self.__model_cleared)
-        self.__item_moving = False
+
+        self.__items = {None: self.invisibleRootItem()}
+        self.__guard = False
 
         self.setHeaderLabels(
             [translate('ListLayoutHeader', h) for h in CueListView.HEADER_NAMES])
@@ -78,32 +76,45 @@ class CueListView(QTreeWidget):
         self.setAlternatingRowColors(True)
         self.setVerticalScrollMode(self.ScrollPerItem)
 
-        self.setIndentation(0)
+        #self.setIndentation(0)
 
         self.currentItemChanged.connect(self.__current_changed)
 
-        self.__guard = False
         self.verticalScrollBar().rangeChanged.connect(self.__update_range)
 
     def dropEvent(self, event):
-        # Decode mimedata information about the drag&drop event, since only
-        # internal movement are allowed we assume the data format is correct
-        data = event.mimeData().data('application/x-qabstractitemmodeldatalist')
-        stream = QDataStream(data, QIODevice.ReadOnly)
+        start_item = self.currentItem()
+        if start_item is None:
+            return
 
-        # Get the starting-item row
-        start_index = stream.readInt()
-        new_index = self.indexAt(event.pos()).row()
-        if not 0 <= new_index <= len(self._model):
-            new_index = len(self._model)
+        src_row = start_item.cue.index
+        src_parent = start_item.cue.parent
+        target = self.itemAt(event.pos())
+
+        if target is not None:
+            drop_pos = self.dropIndicatorPosition()
+            if drop_pos == QTreeWidget.OnItem:
+                dest_parent = target.cue.id
+                dest_row = 0
+            elif drop_pos == QTreeWidget.AboveItem:
+                dest_parent = target.cue.parent
+                dest_row = target.cue.index
+            else:
+                dest_parent = target.cue.parent
+                dest_row = target.cue.index + 1
+        else:
+            dest_parent = None
+            dest_row = self.topLevelItemCount() - 1
+
+        #if not 0 <= row <= len():
+        #    new_index = len(self._model)
 
         if qApp.keyboardModifiers() == Qt.ControlModifier:
-            cue = self._model.get(start_index)
-            new_cue = CueFactory.clone_cue(cue)
+            new_cue = CueFactory.clone_cue(target.cue)
 
-            self._model.insert(new_cue, new_index)
+            self._model.insert(new_cue, dest_row, dest_parent)
         else:
-            self._model.move(start_index, None, new_index, None)
+            self._model.move(src_row, src_parent, dest_row, dest_parent)
 
     def contextMenuEvent(self, event):
         if self.itemAt(event.pos()) is not None:
@@ -135,14 +146,24 @@ class CueListView(QTreeWidget):
                 item = self.itemAt(event.pos())
                 self.setCurrentItem(item)
 
+    def current_cue(self):
+        item = self.currentItem()
+        if item is not None:
+            return item.cue
+
+        return None
+
     def __current_changed(self, current_item, previous_item):
         self.scrollToItem(current_item)
 
     def __cue_added(self, cue):
         item = CueListItem(cue)
-        item.setFlags(item.flags() & ~Qt.ItemIsDropEnabled)
+        if cue.parent is not None:
+            item.setFlags(item.flags() & ~Qt.ItemIsDropEnabled)
+        parent = self.__items[cue.parent]
+        parent.insertChild(cue.index, item)
 
-        self.insertTopLevelItem(cue.index, item)
+        self.__items[cue.id] = item
         self.__init_item(item, cue)
 
         # Select the added item and scroll to it
@@ -151,18 +172,24 @@ class CueListView(QTreeWidget):
         self.setFocus()
 
     def __cue_moved(self, old_row, old_parent, new_row, new_parent):
-        item = self.takeTopLevelItem(old_row)
-        self.insertTopLevelItem(new_row, item)
+        old_parent_item = self.__items[old_parent]
+        item = old_parent_item.takeChild(old_row)
+
+        new_parent_item = self.__items[new_parent]
+        new_parent_item.insertChild(new_row, item)
 
         self.setCurrentItem(item)
-        self.__init_item(item, self._model.get(new_row))
+        self.__init_item(item, self._model.get(new_row, new_parent))
 
     def __cue_removed(self, cue):
-        self.takeTopLevelItem(cue.index)
+        parent = self.__items[cue.parent]
+        parent.takeChild(cue.index)
 
+        # TODO:
         index = cue.index
         if index > 0:
             index -= 1
+
         self.setCurrentIndex(self.model().index(index, 0))
 
     def __model_cleared(self):

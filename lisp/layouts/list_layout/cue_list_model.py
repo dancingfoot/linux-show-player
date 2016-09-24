@@ -66,16 +66,24 @@ class CueTreeModel(ModelAdapter):
         to_parent_node = self.__nodes.get(to_parent)
 
         # Check if the row is valid
-        if not 0 <= to_row < len(to_parent_node):
+        if to_row != 0 and not 0 <= to_row < len(to_parent_node):
             return
 
         if src_parent_node == to_parent_node and src_row == to_row:
             # If a no-op (same index) do nothing
             return
 
+        # The node to be moved
         node = src_parent_node[src_row]
 
+        # Check that node is not an ancestor of to_parent, this prevent moving
+        # a node to one of its children
+        if to_parent_node.have_ancestor(node):
+            return
+
+        # Remove the node from the parent
         src_parent_node.remove_child(src_row)
+        # Insert the node the new parent at the given index
         to_parent_node.insert_child(to_row, node)
 
         self.item_moved.emit(src_row, src_parent, to_row, to_parent)
@@ -104,6 +112,7 @@ class CueTreeModel(ModelAdapter):
 
 
 class PlayingMediaCueModel(ReadOnlyProxyModel):
+    # TODO: support for generic cues (ignore duration(s) under 2sec)
     def __init__(self, model):
         super().__init__(model)
         self.__cues = {}

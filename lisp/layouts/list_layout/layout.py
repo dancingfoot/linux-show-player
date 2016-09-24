@@ -208,10 +208,14 @@ class ListLayout(QWidget, CueLayout):
         return self._model_adapter
 
     def current_index(self):
-        if self.listView.selectedIndexes():
-            return self.listView.selectedIndexes()[0].row(), None
+        cue = self.listView.current_cue()
+        if cue is not None:
+            return cue.index, cue.parent
 
         return -1, None
+
+    def current_cue(self):
+        return self.listView.current_cue()
 
     def set_current_index(self, row, parent=None):
         '''if self._end_list == EndListBehavior.Restart:

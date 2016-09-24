@@ -129,3 +129,20 @@ class TreeNode(Sequence):
             chain.append(self.row())
 
         return chain
+
+    def have_ancestor(self, node):
+        """Search up in the hierarchy to find if the given node is an ancestor.
+
+        x0 -> parent is an ancestor
+        xN -> ancestor is the parent of an ancestor
+
+        :param node: the possible ancestor node
+        :return: True if node is an ancestor of "self"
+        """
+        if self._parent is node:
+            return True
+
+        if self._parent is None:
+            return False
+
+        return self._parent.have_ancestor(node)
