@@ -280,6 +280,7 @@ class MainWindow(QMainWindow, metaclass=QSingleton):
 
         if prefUi.result() == QDialog.Accepted:
             configuration.update_config_from_dict(prefUi.get_configuraton())
+            prefUi.notify()
 
     def _load_from_file(self):
         if self._check_saved():

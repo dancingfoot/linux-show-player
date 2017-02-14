@@ -24,6 +24,7 @@ from lisp.modules import check_module
 from lisp.core.configuration import config
 from lisp.ui.settings.settings_page import SettingsPage
 from lisp.ui.ui_utils import translate
+from lisp.modules.global_controller.global_controller_common import CommonController
 
 
 class GlobalControllerSettings(SettingsPage):
@@ -70,6 +71,8 @@ class GlobalControllerSettings(SettingsPage):
 
         if not check_module('Midi'):
             self.midiInputGroup.setEnabled(False)
+
+        self.configure_notify.connect(CommonController().get_settings)
 
     def get_settings(self):
         conf = {}
