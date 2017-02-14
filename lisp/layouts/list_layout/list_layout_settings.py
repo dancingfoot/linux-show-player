@@ -131,8 +131,7 @@ class ListLayoutSettings(SettingsPage):
             'showaccurate': str(self.showAccurate.isChecked()),
             'autocontinue': str(self.autoNext.isChecked()),
             'endlist': str(self.endListBehavior.currentData()),
-            'gokey': self.goKeyEdit.keySequence().toString(
-                QKeySequence.NativeText),
+            'gokey': self.goKeyEdit.keySequence().toString(),
             'stopcuefade': str(self.stopCueFade.isChecked()),
             'pausecuefade': str(self.pauseCueFade.isChecked()),
             'restartcuefade': str(self.restartCueFade.isChecked()),
@@ -155,10 +154,7 @@ class ListLayoutSettings(SettingsPage):
         self.autoNext.setChecked(settings.get('autocontinue') == 'True')
         self.endListBehavior.setCurrentText(
             translate('ListLayout', settings.get('endlist', '')))
-        self.goKeyEdit.setKeySequence(
-            QKeySequence(settings.get('gokey', 'Space'),
-                         QKeySequence.NativeText))
-
+        self.goKeyEdit.setKeySequence(QKeySequence(settings.get('gokey', 'Space')))
         self.stopCueFade.setChecked(settings.get('stopcuefade') == 'True')
         self.pauseCueFade.setChecked(settings.get('pausecuefade') == 'True')
         self.restartCueFade.setChecked(settings.get('restartcuefade') == 'True')

@@ -24,6 +24,7 @@ from PyQt5.QtWidgets import QGroupBox, QPushButton, QComboBox, QVBoxLayout, \
 from lisp.modules import check_module
 from lisp.modules.midi.midi_input import MIDIInput
 from lisp.plugins.controller.protocols.protocol import Protocol
+from lisp.modules.global_controller.global_controller import GlobalController
 from lisp.ui.qdelegates import ComboBoxDelegate, SpinBoxDelegate, \
     CueActionDelegate
 from lisp.ui.qmodels import SimpleTableModel
@@ -43,7 +44,7 @@ class Midi(Protocol):
 
     def __new_message(self, message):
         if message.type == 'note_on' or message.type == 'note_off':
-            self.protocol_event.emit(Midi.str_from_message(message))
+            self.protocol_event.emit(Midi.str_from_message(message), protocol=Midi.__name__)
 
     @staticmethod
     def str_from_message(message):

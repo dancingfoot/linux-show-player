@@ -28,6 +28,7 @@ from lisp.ui.qdelegates import ComboBoxDelegate, LineEditDelegate, \
 from lisp.ui.qmodels import SimpleTableModel
 from lisp.ui.settings.settings_page import CueSettingsPage
 from lisp.ui.ui_utils import translate
+from PyQt5.QtGui import QKeySequence
 
 
 class Keyboard(Protocol):
@@ -40,7 +41,9 @@ class Keyboard(Protocol):
 
     def __key_pressed(self, key_event):
         if not key_event.isAutoRepeat() and key_event.text() != '':
-            self.protocol_event.emit(key_event.text())
+            seq = QKeySequence(key_event.key()).toString()
+            print("KeyPressed: ", seq)
+            self.protocol_event.emit(seq, protocol=Keyboard.__name__)
 
 
 class KeyboardSettings(CueSettingsPage):

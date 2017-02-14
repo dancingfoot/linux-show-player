@@ -43,6 +43,8 @@ from lisp.ui.settings.pages.cue_appearance import Appearance
 from lisp.ui.settings.pages.cue_general import CueGeneralSettings
 from lisp.ui.settings.pages.media_cue_settings import MediaCueSettings
 from lisp.ui.ui_utils import translate
+from lisp.modules.global_controller.global_controller import GlobalController
+from lisp.modules.global_controller.global_controller import GlobalAction, GlobalProtocol
 
 AppSettings.register_settings_widget(ListLayoutSettings)
 
@@ -85,9 +87,7 @@ class ListLayout(QWidget, CueLayout):
         self._auto_continue = config['ListLayout'].getboolean('AutoContinue')
         self._show_playing = config['ListLayout'].getboolean('ShowPlaying')
         self._go_key = config['ListLayout']['GoKey']
-        self._go_key_sequence = QKeySequence(self._go_key,
-                                             QKeySequence.NativeText)
-
+        self._go_key_sequence = QKeySequence(self._go_key)
         try:
             self._end_list = EndListBehavior(config['ListLayout']['EndList'])
         except ValueError:
@@ -194,6 +194,15 @@ class ListLayout(QWidget, CueLayout):
 
         self.retranslateUi()
 
+        GlobalController().set_controller(GlobalAction.GO,
+                                          GlobalProtocol.ALL,
+                                          self.go)
+
+        GlobalController().set_controller(GlobalAction.STOP_ALL,
+                                          GlobalProtocol.MIDI | GlobalProtocol.OSC,
+                                          self.stop_all)
+
+
     def retranslateUi(self):
         self.showPlayingAction.setText(
             translate('ListLayout', 'Show playing cues'))
@@ -260,23 +269,26 @@ class ListLayout(QWidget, CueLayout):
         self.playView.setVisible(visible)
         self.controlButtons.setVisible(visible)
 
+    # TODO: (global controller related) needs cleanup
     def onKeyPressEvent(self, e):
         if not e.isAutoRepeat():
             keys = e.key()
             modifiers = e.modifiers()
 
-            if modifiers & Qt.ShiftModifier:
-                keys += Qt.SHIFT
-            if modifiers & Qt.ControlModifier:
-                keys += Qt.CTRL
-            if modifiers & Qt.AltModifier:
-                keys += Qt.ALT
-            if modifiers & Qt.MetaModifier:
-                keys += Qt.META
+            # if modifiers & Qt.ShiftModifier:
+            #     keys += Qt.SHIFT
+            # if modifiers & Qt.ControlModifier:
+            #     keys += Qt.CTRL
+            # if modifiers & Qt.AltModifier:
+            #     keys += Qt.ALT
+            # if modifiers & Qt.MetaModifier:
+            #     keys += Qt.META
 
-            if QKeySequence(keys) in self._go_key_sequence:
-                self.go()
-            elif e.key() == Qt.Key_Space:
+            # if QKeySequence(keys) in self._go_key_sequence:
+            #     self.go()
+
+            # ugly but blocks go signal when editing or marking cues
+            if e.key() == Qt.Key_Space:
                 if qApp.keyboardModifiers() == Qt.ShiftModifier:
                     cue = self.current_cue()
                     if cue is not None:
@@ -285,6 +297,8 @@ class ListLayout(QWidget, CueLayout):
                     item = self.current_item()
                     if item is not None:
                         item.selected = not item.selected
+                else:
+                    self.key_pressed.emit(e)
             else:
                 self.key_pressed.emit(e)
 
