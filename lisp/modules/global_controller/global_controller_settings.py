@@ -24,7 +24,7 @@ from lisp.modules import check_module
 from lisp.core.configuration import config
 from lisp.ui.settings.settings_page import SettingsPage
 from lisp.ui.ui_utils import translate
-from lisp.modules.global_controller.global_controller_common import CommonController
+from lisp.modules.global_controller.global_controller_common import GlobalAction
 
 
 class GlobalControllerSettings(SettingsPage):
@@ -34,6 +34,8 @@ class GlobalControllerSettings(SettingsPage):
         super().__init__(**kwargs)
         self.setLayout(QVBoxLayout())
         self.layout().setAlignment(Qt.AlignTop)
+
+        self.__widgets = {}
 
         # Midi Input
         self.midiInputGroup = QGroupBox(self)
@@ -47,32 +49,31 @@ class GlobalControllerSettings(SettingsPage):
         self.midiInputGroup.layout().addWidget(self.channelLabel, 0, 0)
         self.channelSpinbox = QSpinBox(self.midiInputGroup)
         self.channelSpinbox.setRange(0, 127)
-        self.midiInputGroup.layout().addWidget(self.channelSpinbox, 0, 2)
+        self.midiInputGroup.layout().addWidget(self.channelSpinbox, 0, 3)
 
-        self.goLabel = QLabel(translate('GlobalControllerSettings', 'Go'),
-                              self.midiInputGroup)
-        self.midiInputGroup.layout().addWidget(self.goLabel, 1, 0)
-        self.goCombo = QComboBox(self.midiInputGroup)
-        self.goCombo.addItems(['note_on', 'note_off'])
-        self.midiInputGroup.layout().addWidget(self.goCombo, 1, 1)
-        self.goSpinbox = QSpinBox(self.midiInputGroup)
-        self.goSpinbox.setRange(0, 127)
-        self.midiInputGroup.layout().addWidget(self.goSpinbox, 1, 2)
-
-        self.stopLabel = QLabel(translate('GlobalControllerSettings', 'Stop'),
-                                self.midiInputGroup)
-        self.midiInputGroup.layout().addWidget(self.stopLabel, 2, 0)
-        self.stopCombo = QComboBox(self.midiInputGroup)
-        self.stopCombo.addItems(['note_on', 'note_off'])
-        self.midiInputGroup.layout().addWidget(self.stopCombo, 2, 1)
-        self.stopSpinbox = QSpinBox(self.midiInputGroup)
-        self.stopSpinbox.setRange(0, 127)
-        self.midiInputGroup.layout().addWidget(self.stopSpinbox, 2, 2)
+        row = 1
+        for i in GlobalAction:
+            self.create_widget(i, row)
+            row += 1
 
         if not check_module('Midi'):
             self.midiInputGroup.setEnabled(False)
 
-        self.configure_notify.connect(CommonController().get_settings)
+    def create_widget(self, controller, row):
+        label = QLabel(translate('GlobalControllerSettings', controller.name.replace('_',' ').capitalize()),
+                       self.midiInputGroup)
+        self.midiInputGroup.layout().addWidget(label, row, 0)
+        combo = QComboBox(self.midiInputGroup)
+        combo.addItems(['note_on', 'note_off', 'control_change', 'program_change'])
+        self.midiInputGroup.layout().addWidget(combo, row, 1)
+        spinbox1 = QSpinBox(self.midiInputGroup)
+        spinbox1.setRange(0, 127)
+        self.midiInputGroup.layout().addWidget(spinbox1, row, 2)
+        spinbox2 = QSpinBox(self.midiInputGroup)
+        spinbox2.setRange(0, 127)
+        self.midiInputGroup.layout().addWidget(spinbox2, row, 3)
+
+        self.__widgets[controller] = [combo, spinbox1, spinbox2]
 
     def get_settings(self):
         conf = {}
@@ -91,13 +92,13 @@ class GlobalControllerSettings(SettingsPage):
 
         self.channelSpinbox.setValue(channel)
 
-        if len(go) > 1:
-            self.goCombo.setCurrentText(go[0])
-            self.goSpinbox.setValue(int(go[1]))
-        else:
-            self.goCombo.setCurrentText('note_on')
-            self.goSpinbox.setValue(0)
-
-        if len(stop_all) > 1:
-            self.stopCombo.setCurrentText(stop_all[0])
-            self.stopSpinbox.setValue(int(stop_all[1]))
+        # if len(go) > 1:
+        #     self.goCombo.setCurrentText(go[0])
+        #     self.goSpinbox.setValue(int(go[1]))
+        # else:
+        #     self.goCombo.setCurrentText('note_on')
+        #     self.goSpinbox.setValue(0)
+        #
+        # if len(stop_all) > 1:
+        #     self.stopCombo.setCurrentText(stop_all[0])
+        #     self.stopSpinbox.setValue(int(stop_all[1]))

@@ -52,19 +52,17 @@ class Controller:
 
 class GlobalAction(Enum):
     GO = Controller()
-    STOP = Controller()
-    PAUSE = Controller()
     STOP_ALL = Controller()
     PAUSE_ALL = Controller()
     INTERRUPT_ALL = Controller()
     SELECT_NEXT = Controller()
     SELECT_PREV = Controller()
     RESET = Controller()
+    GO_CURRENT = Controller(int)
+    PAUSE_CURRENT = Controller(int)
+    STOP_CURRENT = Controller(int)
+    INTERRUPT_CURRENT = Controller(int)
     VOLUME = Controller(float)
-    CURRENT_GO = Controller(int)
-    CURRENT_PAUSE = Controller(int)
-    CURRENT_STOP = Controller(int)
-    CURRENT_INTERRUPT = Controller(int)
 
     def get_controller(self):
         return self.value
@@ -77,13 +75,11 @@ class CommonController(metaclass=ABCSingleton):
         self.__protocols = set()
 
         self.controller_event = Signal()
-        self.configure_notify = Signal()
 
         self.controller_event.connect(self.perform_action)
-        self.configure_notify.connect(self.get_settings)
 
     @staticmethod
-    def __create_midi_key(action_str, channel):
+    def create_midi_key(action_str, channel):
         key_str = tuple(config['MidiInput'].get(action_str, '').replace(' ', '').split(','))
         if len(key_str) > 1:
             return '{} {} {}'.format(key_str[0], int(channel), int(key_str[1]))
@@ -91,19 +87,24 @@ class CommonController(metaclass=ABCSingleton):
             return ''
 
     @staticmethod
-    def __create_keyboard_key(action_str):
+    def create_keyboard_key(action_str):
         if action_str is 'go':
             return config['ListLayout'].get('gokey', '')
         else:
             return ''
 
+    @staticmethod
+    def create_osc_key(action_str, path):
+        return ''
+
     def populate_protcols(self, protocols):
         protocols = [p.__name__.upper() for p in protocols]
+
         for i in GlobalProtocol:
             if i.name in protocols:
                 self.__protocols.add(GlobalProtocol[i.name])
 
-        self.configure_notify.emit()
+        self.get_settings()
 
     def get_settings(self):
         print("CommonController get_settings")
@@ -113,14 +114,13 @@ class CommonController(metaclass=ABCSingleton):
             channel = config['MidiInput'].get('channel', 0)
 
             for action in GlobalAction:
-                key = self.__create_midi_key(action.name.lower(), channel)
+                key = self.create_midi_key(action.name.lower(), channel)
                 if key:
-                    print(action, key)
                     self.set_key(action, key)
 
         if GlobalProtocol.KEYBOARD in self.__protocols:
             # we bypass all action, using only gokey from ListLayout
-            key = self.__create_keyboard_key('go')
+            key = self.create_keyboard_key('go')
             if key:
                 self.set_key(GlobalAction.GO, key)
 

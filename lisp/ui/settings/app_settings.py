@@ -77,11 +77,6 @@ class AppSettings(QDialog):
 
         return conf
 
-    def notify(self):
-        for n in range(self.sections.count()):
-            widget = self.sections.widget(n)
-            widget.configure_notify.emit()
-
     @classmethod
     def register_settings_widget(cls, widget):
         if widget not in cls.SettingsWidgets:

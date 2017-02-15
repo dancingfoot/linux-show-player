@@ -18,15 +18,10 @@
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtWidgets import QWidget
-from lisp.core.signal import Signal
 
 
 class SettingsPage(QWidget):
     Name = 'Page'
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.configure_notify = Signal()
 
     def enable_check(self, enabled):
         """Enable option check"""

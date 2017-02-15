@@ -42,7 +42,6 @@ class Keyboard(Protocol):
     def __key_pressed(self, key_event):
         if not key_event.isAutoRepeat() and key_event.text() != '':
             seq = QKeySequence(key_event.key()).toString()
-            print("KeyPressed: ", seq)
             self.protocol_event.emit(seq, protocol=Keyboard.__name__)
 
 
