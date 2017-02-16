@@ -107,8 +107,8 @@ class ListLayoutSettings(SettingsPage):
     @staticmethod
     def __go_key_changed(key_sequence):
         CommonController().notify_key.emit(GlobalAction.GO,
-                                    GlobalProtocol.KEYBOARD,
-                                    key_sequence.toString())
+                                           GlobalProtocol.KEYBOARD,
+                                           key_sequence.toString())
 
     def retranslateUi(self):
         self.behaviorsGroup.setTitle(
