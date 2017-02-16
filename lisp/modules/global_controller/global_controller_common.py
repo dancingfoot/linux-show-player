@@ -22,6 +22,7 @@ from lisp.core.singleton import ABCSingleton
 from enum import Enum, Flag, auto
 from lisp.core.signal import Signal
 from lisp.core.configuration import config
+from lisp.ui import elogging
 
 
 class GlobalProtocol(Flag):
@@ -47,7 +48,10 @@ class Controller:
     def add_callback(self, protocol, func):
         if isinstance(protocol, GlobalProtocol):
             self.__protocols = protocol
-            self.__signal.connect(func)
+            if self.__protocols is not GlobalProtocol.NONE:
+                self.__signal.connect(func)
+            else:
+                raise elogging.error("GlobalController: Controller controller allready connected")
 
     @property
     def arg_types(self):
