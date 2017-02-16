@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import QGroupBox, QGridLayout, QTableView, QHeaderView, \
     QPushButton, QVBoxLayout
 
 from lisp.application import Application
-from lisp.plugins.controller.protocols.protocol import Protocol
+from lisp.core.protocol import Protocol
 from lisp.ui.qdelegates import ComboBoxDelegate, LineEditDelegate, \
     CueActionDelegate
 from lisp.ui.qmodels import SimpleTableModel
@@ -43,6 +43,22 @@ class Keyboard(Protocol):
         if not key_event.isAutoRepeat() and key_event.text() != '':
             seq = QKeySequence(key_event.key()).toString()
             self.protocol_event.emit(seq, protocol=Keyboard.__name__)
+
+    @staticmethod
+    def key_from_message(message):
+        return message
+
+    @staticmethod
+    def key_from_values(*args):
+        return args[0]
+
+    @staticmethod
+    def values_from_key(message_str):
+        return message_str
+
+    @staticmethod
+    def wildcard_keys(key):
+        return []
 
 
 class KeyboardSettings(CueSettingsPage):

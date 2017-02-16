@@ -43,7 +43,7 @@ from lisp.ui.settings.pages.cue_appearance import Appearance
 from lisp.ui.settings.pages.cue_general import CueGeneralSettings
 from lisp.ui.settings.pages.media_cue_settings import MediaCueSettings
 from lisp.ui.ui_utils import translate
-from lisp.modules.global_controller.global_controller_common import CommonController, GlobalAction, GlobalProtocol
+from lisp.modules.global_controller.global_controller_common import CommonController, GlobalAction, ControllerProtocol
 
 AppSettings.register_settings_widget(ListLayoutSettings)
 
@@ -194,11 +194,11 @@ class ListLayout(QWidget, CueLayout):
         self.retranslateUi()
 
         CommonController().set_controller(GlobalAction.GO,
-                                          GlobalProtocol.ALL,
+                                          ControllerProtocol.ALL,
                                           self.go)
 
         CommonController().set_controller(GlobalAction.STOP_ALL,
-                                          GlobalProtocol.MIDI | GlobalProtocol.OSC,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
                                           self.stop_all)
 
 

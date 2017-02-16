@@ -22,9 +22,10 @@ from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QComboBox, QGridLayout, QLab
 
 from lisp.modules import check_module
 from lisp.core.configuration import config
+from lisp.core.protocol import Protocol
 from lisp.ui.settings.settings_page import SettingsPage
 from lisp.ui.ui_utils import translate
-from lisp.modules.global_controller.global_controller_common import GlobalAction, CommonController, GlobalProtocol
+from lisp.modules.global_controller.global_controller_common import GlobalAction, CommonController, ControllerProtocol
 from lisp.modules.midi.midi_utils import ATTRIBUTES_RANGE, MSGS_ATTRIBUTES
 
 
@@ -66,13 +67,13 @@ class MidiControllerSettings(SettingsPage):
             key = ' '.join((self.__widgets[action][0].currentText(),
                             channel,
                             str(self.__widgets[action][1].value())))
-            CommonController().notify_key.emit(action, GlobalProtocol.MIDI, key)
+            CommonController().notify_key.emit(action, ControllerProtocol.MIDI, key)
         else:
             key = ' '.join((self.__widgets[action][0].currentText(),
                             channel,
                             str(self.__widgets[action][1].value()),
                             str(self.__widgets[action][2].value())))
-            CommonController().notify_key.emit(action, GlobalProtocol.MIDI, key)
+            CommonController().notify_key.emit(action, ControllerProtocol.MIDI, key)
 
     def __msg_type_changed(self, msg_type, action):
         # if you allow use other midi message than note_on/off, programm_change, control_change
@@ -115,19 +116,23 @@ class MidiControllerSettings(SettingsPage):
         if self.isEnabled():
             conf['channel'] = str(self.channelSpinbox.value())
             for action, widget in self.__widgets.items():
+                protocol = CommonController().get_protocol(ControllerProtocol.MIDI)
+
                 if widget[2].value() > -1:
-                    conf[action.name.lower()] = ', '.join([widget[0].currentText(),
-                                                         str(widget[1].value()),
-                                                         str(widget[2].value())])
+                    conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
+                                                                         widget[1].value(),
+                                                                         widget[2].value())
                 else:
-                    conf[action.name.lower()] = ', '.join([widget[0].currentText(),
-                                                         str(widget[1].value())])
+                    conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
+                                                                         widget[1].value())
 
         return {'MidiInput': conf}
 
     def load_midi_actions(self):
         for action in GlobalAction:
-            values = tuple(config['MidiInput'].get(action.name.lower(), '').replace(' ', '').split(','))
+            # values = tuple(config['MidiInput'].get(action.name.lower(), '').replace(' ', '').split(','))
+            protocol = CommonController().get_protocol(ControllerProtocol.MIDI)
+            values = protocol.values_from_key(config['MidiInput'].get(action.name.lower(), ''))
 
             if len(values) > 1:
                 self.__widgets[action][0].setCurrentText(values[0])

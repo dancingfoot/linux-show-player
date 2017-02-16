@@ -25,7 +25,7 @@ from lisp.core.configuration import config
 from lisp.ui import elogging
 
 
-class GlobalProtocol(Flag):
+class ControllerProtocol(Flag):
     NONE = auto()
     KEYBOARD = auto()
     MIDI = auto()
@@ -37,18 +37,18 @@ class Controller:
     def __init__(self, *arg_types):
         super().__init__()
         self.__signal = Signal()
-        self.__protocols = GlobalProtocol.NONE
+        self.__protocols = ControllerProtocol.NONE
         self.__arg_types = arg_types
 
     def execute(self, *args, **kwargs):
         protocol = kwargs.pop('protocol')
-        if self.__protocols & GlobalProtocol[protocol.upper()]:
+        if self.__protocols & ControllerProtocol[protocol.upper()]:
             self.__signal.emit(*args, **kwargs)
 
     def add_callback(self, protocol, func):
-        if isinstance(protocol, GlobalProtocol):
+        if isinstance(protocol, ControllerProtocol):
             self.__protocols = protocol
-            if self.__protocols is not GlobalProtocol.NONE:
+            if self.__protocols is not ControllerProtocol.NONE:
                 self.__signal.connect(func)
             else:
                 raise elogging.error("GlobalController: Controller controller allready connected")
@@ -70,7 +70,7 @@ class GlobalAction(Enum):
     PAUSE_CURRENT = Controller(int)
     STOP_CURRENT = Controller(int)
     INTERRUPT_CURRENT = Controller(int)
-    VOLUME = Controller(float)
+    # VOLUME = Controller(float)
 
     def get_controller(self):
         return self.value
@@ -78,10 +78,9 @@ class GlobalAction(Enum):
 
 class CommonController(metaclass=ABCSingleton):
     """module provides global controls through protocol plugins"""
-
     def __init__(self):
         self.__keys__ = {}
-        self.__protocols = set()
+        self.__protocols = {}
 
         self.controller_event = Signal()
         self.notify_key = Signal()
@@ -108,15 +107,24 @@ class CommonController(metaclass=ABCSingleton):
         return ''
 
     def populate_protcols(self, protocols):
-        protocols = [p.__name__.upper() for p in protocols]
-
-        for i in GlobalProtocol:
-            if i.name in protocols:
-                self.__protocols.add(GlobalProtocol[i.name])
+        for protocol in protocols:
+            p_name = protocol.__name__.upper()
+            if hasattr(ControllerProtocol, p_name):
+                self.__protocols[ControllerProtocol[p_name]] = protocol
 
         self.get_settings()
 
+    def query_protocol(self, p_str):
+        if p_str.upper() in ControllerProtocol.__members__.keys() and ControllerProtocol[p_str.upper()] in self.__protocols:
+            return ControllerProtocol[p_str.upper()]
+        else:
+            return None
+
+    def get_protocol(self, p_type):
+        return self.__protocols[p_type] if p_type in self.__protocols else None
+
     def notify_key_changed(self, action, protocol, new_key):
+        # TODO: get rid of this reverse dict search
         keys = [key for key, val in self.__keys__.items() if
                 val[1] == action.get_controller() and val[0] is protocol]
         for old_key in keys:
@@ -125,21 +133,21 @@ class CommonController(metaclass=ABCSingleton):
     def get_settings(self):
         self.__keys__.clear()
 
-        if GlobalProtocol.MIDI in self.__protocols:
+        if ControllerProtocol.MIDI in self.__protocols:
             channel = config['MidiInput'].get('channel', 0)
 
             for action in GlobalAction:
                 key = self.create_midi_key_from_settings(action.name.lower(), channel)
                 if key:
-                    self.set_key(action, GlobalProtocol.MIDI, key)
+                    self.set_key(action, ControllerProtocol.MIDI, key)
 
-        if GlobalProtocol.KEYBOARD in self.__protocols:
+        if ControllerProtocol.KEYBOARD in self.__protocols:
             # we bypass all action, using only gokey from ListLayout
             key = self.create_keyboard_key_from_settings('go')
             if key:
-                self.set_key(GlobalAction.GO, GlobalProtocol.KEYBOARD, key)
+                self.set_key(GlobalAction.GO, ControllerProtocol.KEYBOARD, key)
 
-        if GlobalProtocol.OSC in self.__protocols:
+        if ControllerProtocol.OSC in self.__protocols:
             # TODO add OSC
             pass
 
@@ -152,7 +160,7 @@ class CommonController(metaclass=ABCSingleton):
         controller.add_callback(protocols, func)
 
     def set_key(self, action, protocol, key):
-        if isinstance(action, GlobalAction) and isinstance(protocol, GlobalProtocol):
+        if isinstance(action, GlobalAction) and isinstance(protocol, ControllerProtocol):
             self.__keys__[key] = (protocol, action.get_controller())
 
     def perform_action(self, key, *args, **kwargs):

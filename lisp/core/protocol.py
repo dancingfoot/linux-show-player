@@ -18,9 +18,10 @@
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
 from lisp.core.signal import Signal
+from abc import abstractmethod, ABCMeta
 
 
-class Protocol:
+class Protocol(metaclass=ABCMeta):
     """Base interface for protocols.
 
     The init() and reset() functions are called when the respective functions
@@ -35,9 +36,6 @@ class Protocol:
     as suffix (e.g. Protocol -> ProtocolSettings), in the same file.
     """
 
-    # TODO: add key_from_settings and key_from_message staticmethods to Protocol
-    # TODO: to make it available to CommonController
-
     def __init__(self):
         self.protocol_event = Signal()
 
@@ -46,3 +44,40 @@ class Protocol:
 
     def reset(self):
         pass
+
+    @staticmethod
+    @abstractmethod
+    def key_from_message(message):
+        """
+        creates a unique key string from the given message
+        :param message: message received by a protocol plugin
+        :type message:
+        """
+
+    @staticmethod
+    @abstractmethod
+    def key_from_values(*args):
+        """
+        creates a unique key string from arguments
+        :param args: arguments of protocol plugin messsage
+        :type args: arguments
+        """
+
+    @staticmethod
+    @abstractmethod
+    def values_from_key(key):
+        """
+        unpacks values from a message key string
+        :param key: unique message key string
+        :type key: str
+        """
+
+    @staticmethod
+    @abstractmethod
+    def wildcard_keys(key):
+        """
+        creates possible wildcard keys of this key
+        wildcard: any = -1
+        :param key: key
+        :type key: str
+        """

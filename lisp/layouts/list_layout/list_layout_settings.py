@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QCheckBox, QComboBox, \
 from lisp.ui.settings.settings_page import SettingsPage
 from lisp.ui.ui_utils import translate
 from lisp.ui.widgets import FadeComboBox
-from lisp.modules.global_controller.global_controller_common import CommonController, GlobalProtocol, GlobalAction
+from lisp.modules.global_controller.global_controller_common import CommonController, ControllerProtocol, GlobalAction
 
 
 class ListLayoutSettings(SettingsPage):
@@ -107,7 +107,7 @@ class ListLayoutSettings(SettingsPage):
     @staticmethod
     def __go_key_changed(key_sequence):
         CommonController().notify_key.emit(GlobalAction.GO,
-                                           GlobalProtocol.KEYBOARD,
+                                           ControllerProtocol.KEYBOARD,
                                            key_sequence.toString())
 
     def retranslateUi(self):

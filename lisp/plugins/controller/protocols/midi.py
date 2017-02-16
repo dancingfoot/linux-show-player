@@ -23,8 +23,8 @@ from PyQt5.QtWidgets import QGroupBox, QPushButton, QComboBox, QVBoxLayout, \
 
 from lisp.modules import check_module
 from lisp.modules.midi.midi_input import MIDIInput
-from lisp.plugins.controller.protocols.protocol import Protocol
-from lisp.modules.global_controller.global_controller import GlobalController
+from lisp.modules.midi.midi_utils import MSGS_ATTRIBUTES
+from lisp.core.protocol import Protocol
 from lisp.ui.qdelegates import ComboBoxDelegate, SpinBoxDelegate, \
     CueActionDelegate
 from lisp.ui.qmodels import SimpleTableModel
@@ -43,21 +43,48 @@ class Midi(Protocol):
             MIDIInput().new_message.connect(self.__new_message)
 
     def __new_message(self, message):
-        if message.type == 'note_on' or message.type == 'note_off':
-            self.protocol_event.emit(Midi.str_from_message(message), protocol=Midi.__name__)
+        types = {'note_on', 'note_off', 'program_change', 'control_change', 'sysex'}
+        if message.type in types:
+            self.protocol_event.emit(Midi.key_from_message(message), protocol=Midi.__name__)
 
     @staticmethod
-    def str_from_message(message):
-        return Midi.str_from_values(message.type, message.channel, message.note)
+    def key_from_message(message):
+        attr = MSGS_ATTRIBUTES[message.type]
+        val_lst = [message.type]
+        val_lst.extend([getattr(message, i) for i in attr if i is not None])
+        return Midi.key_from_values(*val_lst)
 
     @staticmethod
-    def str_from_values(m_type, channel, note):
-        return '{} {} {}'.format(m_type, channel, note)
+    def key_from_values(*args):
+        return ' '.join((str(i) for i in args))
 
     @staticmethod
-    def from_string(message_str):
-        m_type, channel, note = message_str.split()
-        return m_type, int(channel), int(note)
+    def values_from_key(message_str):
+        if message_str:
+            values = message_str.split()
+            return (values[0], *(int(i) for i in values[1:]))
+        else:
+            return ()
+
+    def wildcard_keys(key):
+        """ rule: last element of a midi message can be wildcarded by using -1
+            if length > 3 msg type is not an sysex
+
+        :rtype: object
+        """
+        spl_msg = key.split()
+        print(spl_msg)
+        if len(spl_msg) > 3 and spl_msg[0] is not 'sysex':
+            spl_msg.pop()
+            spl_msg.append('-1')
+            return [' '.join((i for i in spl_msg))]
+        else:
+            return []
+
+        # for i in reversed(range(len(spl_msg) - 1, len(spl_msg))):
+        #     w_msg = spl_msg
+        #     w_msg[i] = -1
+        #     return ' '.join((str(i) for i in w_msg))
 
 
 class MidiSettings(CueSettingsPage):
@@ -126,7 +153,8 @@ class MidiSettings(CueSettingsPage):
             messages = []
 
             for row in self.midiModel.rows:
-                message = Midi.str_from_values(row[0], row[1]-1, row[2])
+                # values from model + wildcard (-1) for velocity
+                message = Midi.key_from_values(row[0], row[1]-1, row[2], -1)
                 messages.append((message, row[-1]))
 
             if messages:
@@ -137,7 +165,7 @@ class MidiSettings(CueSettingsPage):
     def load_settings(self, settings):
         if 'midi' in settings:
             for options in settings['midi']:
-                m_type, channel, note = Midi.from_string(options[0])
+                m_type, channel, note, velocity = Midi.values_from_key(options[0])
                 self.midiModel.appendRow(m_type, channel+1, note, options[1])
 
     def capture_message(self):

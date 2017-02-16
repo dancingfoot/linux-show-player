@@ -25,7 +25,7 @@ from lisp.cues.cue import Cue, CueAction
 from lisp.plugins.controller import protocols
 from lisp.plugins.controller.controller_settings import ControllerSettings
 from lisp.ui.settings.cue_settings import CueSettingsRegistry
-from lisp.modules.global_controller.global_controller_common import CommonController
+from lisp.modules.global_controller.global_controller_common import CommonController, ControllerProtocol
 
 
 class Controller(Plugin):
@@ -80,8 +80,15 @@ class Controller(Plugin):
 
     def perform_action(self, key, **kwargs):
         CommonController().controller_event.emit(key, **kwargs)
-        for cue in self.__map.get(key, []):
-            cue.execute(self.__actions_map[(key, cue)])
+        protocol = ControllerProtocol[kwargs['protocol'].upper()]
+        wildcards = CommonController().get_protocol(protocol).wildcard_keys(key)
+        if not wildcards:
+            for cue in self.__map.get(key, []):
+                cue.execute(self.__actions_map[(key, cue)])
+        else:
+            for w_key in wildcards:
+                for cue in self.__map.get(w_key, []):
+                    cue.execute(self.__actions_map[(w_key, cue)])
 
     def __cue_added(self, cue):
         cue.property_changed.connect(self.cue_changed)
