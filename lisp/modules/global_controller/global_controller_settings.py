@@ -49,7 +49,7 @@ class GlobalControllerSettings(SettingsPage):
                                    self.midiInputGroup)
         self.midiInputGroup.layout().addWidget(self.channelLabel, 0, 0)
         self.channelSpinbox = QSpinBox(self.midiInputGroup)
-        self.channelSpinbox.setRange(0, 127)
+        self.channelSpinbox.setRange(0, 15)
         self.midiInputGroup.layout().addWidget(self.channelSpinbox, 0, 3)
 
         row = 1

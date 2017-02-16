@@ -70,6 +70,7 @@ class GlobalAction(Enum):
 
 class CommonController(metaclass=ABCSingleton):
     """module provides global controls through protocol plugins"""
+
     def __init__(self):
         self.__keys__ = {}
         self.__protocols = set()
@@ -108,12 +109,12 @@ class CommonController(metaclass=ABCSingleton):
         self.get_settings()
 
     def notify_key_changed(self, action, protocol, new_key):
-        keys = {key: val for key, val in self.__keys__.items() if val[1] == action.get_controller() and val[0] is protocol}
+        keys = [key for key, val in self.__keys__.items() if
+                val[1] == action.get_controller() and val[0] is protocol]
         for old_key in keys:
             self.__keys__[new_key] = self.__keys__.pop(old_key)
 
     def get_settings(self):
-        print("CommonController get_settings")
         self.__keys__.clear()
 
         if GlobalProtocol.MIDI in self.__protocols:
@@ -149,4 +150,3 @@ class CommonController(metaclass=ABCSingleton):
     def perform_action(self, key, *args, **kwargs):
         if key in self.__keys__:
             self.__keys__[key][1].execute(*args, **kwargs)
-
