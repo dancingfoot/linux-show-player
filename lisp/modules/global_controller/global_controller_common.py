@@ -49,6 +49,10 @@ class Controller:
             self.__protocols = protocol
             self.__signal.connect(func)
 
+    @property
+    def arg_types(self):
+        return self.__arg_types
+
 
 class GlobalAction(Enum):
     GO = Controller()

@@ -19,7 +19,7 @@
 
 
 from lisp.core.module import Module
-from lisp.modules.global_controller.global_controller_settings import GlobalControllerSettings
+from lisp.modules.global_controller.global_controller_settings import MidiControllerSettings, OscControllerSettings
 from lisp.ui.settings.app_settings import AppSettings
 
 
@@ -27,4 +27,5 @@ class GlobalController(Module):
     """module provides global controls through protocol plugins"""
     def __init__(self):
 
-        AppSettings.register_settings_widget(GlobalControllerSettings)
+        AppSettings.register_settings_widget(MidiControllerSettings)
+        AppSettings.register_settings_widget(OscControllerSettings)

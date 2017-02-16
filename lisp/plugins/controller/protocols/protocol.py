@@ -35,6 +35,9 @@ class Protocol:
     as suffix (e.g. Protocol -> ProtocolSettings), in the same file.
     """
 
+    # TODO: add key_from_settings and key_from_message staticmethods to Protocol
+    # TODO: to make it available to CommonController
+
     def __init__(self):
         self.protocol_event = Signal()
 
