@@ -118,13 +118,10 @@ class MidiControllerSettings(SettingsPage):
             for action, widget in self.__widgets.items():
                 protocol = CommonController().get_protocol(ControllerProtocol.MIDI)
 
-                if widget[2].value() > -1:
-                    conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
-                                                                         widget[1].value(),
-                                                                         widget[2].value())
-                else:
-                    conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
-                                                                         widget[1].value())
+                conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
+                                                                     widget[1].value(),
+                                                                     widget[2].value())
+
 
         return {'MidiInput': conf}
 

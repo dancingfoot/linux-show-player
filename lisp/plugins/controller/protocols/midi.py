@@ -73,7 +73,6 @@ class Midi(Protocol):
         :rtype: object
         """
         spl_msg = key.split()
-        print(spl_msg)
         if len(spl_msg) > 3 and spl_msg[0] is not 'sysex':
             spl_msg.pop()
             spl_msg.append('-1')

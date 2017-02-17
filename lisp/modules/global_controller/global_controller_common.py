@@ -87,25 +87,6 @@ class CommonController(metaclass=ABCSingleton):
         self.controller_event.connect(self.perform_action)
         self.notify_key.connect(self.notify_key_changed)
 
-    @staticmethod
-    def create_midi_key_from_settings(action_str, channel):
-        key_str = tuple(config['MidiInput'].get(action_str, '').replace(' ', '').split(','))
-        if len(key_str) > 1:
-            return '{} {} {}'.format(key_str[0], int(channel), int(key_str[1]))
-        else:
-            return ''
-
-    @staticmethod
-    def create_keyboard_key_from_settings(action_str):
-        if action_str is 'go':
-            return config['ListLayout'].get('gokey', '')
-        else:
-            return ''
-
-    @staticmethod
-    def create_osc_key_from_settings(action_str, path):
-        return ''
-
     def populate_protcols(self, protocols):
         for protocol in protocols:
             p_name = protocol.__name__.upper()
@@ -137,13 +118,14 @@ class CommonController(metaclass=ABCSingleton):
             channel = config['MidiInput'].get('channel', 0)
 
             for action in GlobalAction:
-                key = self.create_midi_key_from_settings(action.name.lower(), channel)
-                if key:
-                    self.set_key(action, ControllerProtocol.MIDI, key)
+                key = tuple(config['MidiInput'].get(action.name.lower(), '').replace(' ', '').split(','))
+                key_str = self.get_protocol(ControllerProtocol.MIDI).key_from_values(key[0], channel, *key[:1])
+                if key_str:
+                    self.set_key(action, ControllerProtocol.MIDI, key_str)
 
         if ControllerProtocol.KEYBOARD in self.__protocols:
             # we bypass all action, using only gokey from ListLayout
-            key = self.create_keyboard_key_from_settings('go')
+            key = config['ListLayout'].get('gokey', '')
             if key:
                 self.set_key(GlobalAction.GO, ControllerProtocol.KEYBOARD, key)
 
