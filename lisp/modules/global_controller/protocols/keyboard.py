@@ -20,15 +20,14 @@
 from PyQt5.QtCore import Qt, QT_TRANSLATE_NOOP
 from PyQt5.QtWidgets import QGroupBox, QGridLayout, QTableView, QHeaderView, \
     QPushButton, QVBoxLayout
+from PyQt5.QtGui import QKeySequence
 
 from lisp.application import Application
 from lisp.core.protocol import Protocol
-from lisp.ui.qdelegates import ComboBoxDelegate, LineEditDelegate, \
-    CueActionDelegate
+from lisp.ui.qdelegates import CueActionDelegate, KeySequenceEditDelegate
 from lisp.ui.qmodels import SimpleTableModel
 from lisp.ui.settings.settings_page import CueSettingsPage
 from lisp.ui.ui_utils import translate
-from PyQt5.QtGui import QKeySequence
 
 
 class Keyboard(Protocol):
@@ -42,7 +41,7 @@ class Keyboard(Protocol):
     def __key_pressed(self, key_event):
         if not key_event.isAutoRepeat() and key_event.text() != '':
             seq = QKeySequence(key_event.key()).toString()
-            self.protocol_event.emit(seq, protocol=Keyboard.__name__)
+            self.protocol_event.emit(seq, Keyboard.__name__)
 
     @staticmethod
     def key_from_message(message):
@@ -137,7 +136,7 @@ class KeyboardView(QTableView):
         self.verticalHeader().setDefaultSectionSize(24)
         self.verticalHeader().setHighlightSections(False)
 
-        self.delegates = [LineEditDelegate(max_length=1),
+        self.delegates = [KeySequenceEditDelegate(),
                           CueActionDelegate(cue_class=cue_class,
                                             mode=CueActionDelegate.Mode.Name)]
 

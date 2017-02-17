@@ -45,7 +45,7 @@ class Midi(Protocol):
     def __new_message(self, message):
         types = {'note_on', 'note_off', 'program_change', 'control_change', 'sysex'}
         if message.type in types:
-            self.protocol_event.emit(Midi.key_from_message(message), protocol=Midi.__name__)
+            self.protocol_event.emit(Midi.key_from_message(message), Midi.__name__)
 
     @staticmethod
     def key_from_message(message):

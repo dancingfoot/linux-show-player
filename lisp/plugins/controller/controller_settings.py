@@ -20,7 +20,7 @@
 from PyQt5.QtCore import QT_TRANSLATE_NOOP
 from PyQt5.QtWidgets import QHBoxLayout, QTabWidget
 
-from lisp.plugins.controller import protocols
+from lisp.modules.global_controller import protocols
 from lisp.ui.settings.settings_page import CueSettingsPage
 from lisp.ui.ui_utils import translate
 

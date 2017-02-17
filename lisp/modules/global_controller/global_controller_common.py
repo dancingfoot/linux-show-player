@@ -23,6 +23,7 @@ from enum import Enum, Flag, auto
 from lisp.core.signal import Signal
 from lisp.core.configuration import config
 from lisp.ui import elogging
+from lisp.modules.global_controller import protocols
 
 
 class ControllerProtocol(Flag):
@@ -40,10 +41,9 @@ class Controller:
         self.__protocols = ControllerProtocol.NONE
         self.__arg_types = arg_types
 
-    def execute(self, *args, **kwargs):
-        protocol = kwargs.pop('protocol')
-        if self.__protocols & ControllerProtocol[protocol.upper()]:
-            self.__signal.emit(*args, **kwargs)
+    def execute(self, protocol, *args):
+        if self.__protocols & protocol:
+            self.__signal.emit(*args)
 
     def add_callback(self, protocol, func):
         if isinstance(protocol, ControllerProtocol):
@@ -60,16 +60,22 @@ class Controller:
 
 class GlobalAction(Enum):
     GO = Controller()
-    STOP_ALL = Controller()
     PAUSE_ALL = Controller()
+    RESUME_ALL = Controller()
+    STOP_ALL = Controller()
     INTERRUPT_ALL = Controller()
     SELECT_NEXT = Controller()
     SELECT_PREV = Controller()
     RESET = Controller()
-    GO_CURRENT = Controller(int)
-    PAUSE_CURRENT = Controller(int)
-    STOP_CURRENT = Controller(int)
-    INTERRUPT_CURRENT = Controller(int)
+    PAUSE_CURRENT = Controller()
+    RESUME_CURRENT = Controller()
+    STOP_CURRENT = Controller()
+    INTERRUPT_CURRENT = Controller()
+    GO_NUM = Controller(int)
+    PAUSE_NUM = Controller(int)
+    RESUME_NUM = Controller(int)
+    STOP_NUM = Controller(int)
+    INTERRUPT_NUM = Controller(int)
     # VOLUME = Controller(float)
 
     def get_controller(self):
@@ -78,33 +84,46 @@ class GlobalAction(Enum):
 
 class CommonController(metaclass=ABCSingleton):
     """module provides global controls through protocol plugins"""
+
     def __init__(self):
         self.__keys__ = {}
         self.__protocols = {}
 
-        self.controller_event = Signal()  # key, *args, **kwargs
+        self.controller_event = Signal()  # key, list(wildcard keys)
         self.notify_key_changed = Signal()  # GlobalAction, ControllerProtocol, str
         self.notify_new_session = Signal()
         self.notify_del_session = Signal()
 
-        self.controller_event.connect(self.perform_action) # key, list(wildcard keys)
         self.notify_key_changed.connect(self.change_key_str)
+        self.notify_new_session.connect(self.__new_session)
+        self.notify_del_session.connect(self.__del_session)
 
-        # TODO: connect to protocol signal
-        # protocol.protocol_event.connect(self.perform_action)
+        protocols.load()
 
-    # TODO: CommonController holds protocols
+        for protocol_class in protocols.Protocols:
+            protocol = protocol_class()
+            p_name = protocol_class.__name__.upper()
+            if hasattr(ControllerProtocol, p_name):
+                self.__protocols[ControllerProtocol[p_name]] = protocol
+            protocol.protocol_event.connect(self.perform_action)
+
+        self.get_settings()
+
     @property
     def protocols(self):
         return self.__protocols.values()
 
-    def populate_protcols(self, protocols):
-        for protocol in protocols:
-            p_name = protocol.__name__.upper()
-            if hasattr(ControllerProtocol, p_name):
-                self.__protocols[ControllerProtocol[p_name]] = protocol
+    @property
+    def protocol_types(self):
+        return self.__protocols.keys()
 
-        self.get_settings()
+    def __new_session(self):
+        for protocol in self.protocols:
+            protocol.init()
+
+    def __del_session(self):
+        for protocol in self.protocols:
+            protocol.reset()
 
     def query_protocol(self, p_str):
         if p_str.upper() in ControllerProtocol.__members__.keys() \
@@ -130,6 +149,7 @@ class CommonController(metaclass=ABCSingleton):
             channel = config['MidiInput'].get('channel', 0)
 
             for action in GlobalAction:
+                # TODO: use protocol methods
                 key = tuple(config['MidiInput'].get(action.name.lower(), '').replace(' ', '').split(','))
                 key_str = self.get_protocol(ControllerProtocol.MIDI).key_from_values(key[0], channel, *key[:1])
                 if key_str:
@@ -157,21 +177,18 @@ class CommonController(metaclass=ABCSingleton):
         if isinstance(action, GlobalAction) and isinstance(protocol, ControllerProtocol):
             self.__keys__[key] = (protocol, action.get_controller())
 
-    def perform_action(self, key, *args, **kwargs):
-        if key in self.__keys__:
-            self.__keys__[key][1].execute(*args, **kwargs)
+    def perform_action(self, key, protocol_name):
+        protocol_type = self.query_protocol(protocol_name)
+        protocol = self.get_protocol(protocol_type)
+        wildcards = protocol.wildcard_keys(key)
 
-        # # TODO: wildcard filtering
-        # protocol_type = self.query_protocol(kwargs['protocol'])
-        # protocol = protocol_type.get_protocol(protocol_type)
-        # wildcards = protocol.wildcard_keys(key)
-        #
-        # if not wildcards:
-        #     if key in self.__keys__:
-        #         self.__keys__[key][1].execute(*args, **kwargs)
-        # else:
-        #     for wc in wildcards:
-        #         self.__keys__[key][1].execute(*args, **kwargs)
-        #
-        # # TODO: self.controller_event.emit(key, wildcards)
-        # # self.controller_event.emit(key, wildcards)
+        if not wildcards:
+            if key in self.__keys__:
+                self.__keys__[key][1].execute(protocol, *args)
+        else:
+            for wildcard in self.__keys__.get(wildcards, []):
+                if wildcard in self.__keys__:
+                    self.__keys__[wildcard][1].execute(protocol, *args)
+
+        # forward key to other listeners (e.g. controller plugins)
+        self.controller_event.emit(key, wildcards)

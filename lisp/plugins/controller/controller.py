@@ -22,10 +22,9 @@ from lisp.application import Application
 from lisp.core.has_properties import Property
 from lisp.core.plugin import Plugin
 from lisp.cues.cue import Cue, CueAction
-from lisp.plugins.controller import protocols
+from lisp.modules.global_controller.global_controller_common import CommonController
 from lisp.plugins.controller.controller_settings import ControllerSettings
 from lisp.ui.settings.cue_settings import CueSettingsRegistry
-from lisp.modules.global_controller.global_controller_common import CommonController, ControllerProtocol
 
 
 class Controller(Plugin):
@@ -48,33 +47,26 @@ class Controller(Plugin):
         # Register settings-page
         CueSettingsRegistry().add_item(ControllerSettings)
 
-        # TODO: move to CommonController
-        # Load available protocols
-        self.__load_protocols()
+        CommonController().controller_event.connect(self.perform_action)
 
     def init(self):
-        # TODO: send signal to CommonController
-        # CommonController.notify_new_session.emit()
-        for protocol in self.__protocols.values():
-            protocol.init()
+        CommonController().notify_new_session.emit()
 
     def reset(self):
         self.__map.clear()
         self.__actions_map.clear()
 
-        # TODO: send signal to CommonController
-        # CommonController.notify_del_session.emit()
-        for protocol in self.__protocols.values():
-            protocol.reset()
+        CommonController().notify_new_session.emit()
 
     def cue_changed(self, cue, property_name, value):
         if property_name == 'controller':
             self.delete_from_map(cue)
 
-            # TODO: CommonController().get_protocol(ControllerProtocol.MIDI.name.lower())
-            for protocol in self.__protocols:
-                for key, action in value.get(protocol, []):
+            # for protocol in self.__protocols:
+            for protocol in CommonController().protocol_types:
+                for key, action in value.get(protocol.name.lower(), []):
                     if key not in self.__map:
+                        print("cue_changed ", key)
                         self.__map[key] = set()
 
                     self.__map[key].add(cue)
@@ -85,35 +77,15 @@ class Controller(Plugin):
             self.__map[key].discard(cue)
             self.__actions_map.pop((key, cue), None)
 
+    def perform_action(self, key, wildcards):
+        # execute for actual key
+        for cue in self.__map.get(key, []):
+            cue.execute(self.__actions_map[(key, cue)])
 
-    # def perform_action(self, key, wildcards):
-    #     # TODO: remove emit signal
-    #     # CommonController().controller_event.emit(key, **kwargs)
-    #
-    #     # TODO: move wildcard filtering to CommonController
-    #     # protocol = ControllerProtocol[kwargs['protocol'].upper()]
-    #     # wildcards = CommonController().get_protocol(protocol).wildcard_keys(key)
-    #
-    #     # execute for actual key
-    #     for cue in self.__map.get(key, []):
-    #         cue.execute(self.__actions_map[(key, cue)])
-    #
-    #     # execute for wildcard keys
-    #     for wildcard in wildcards:
-    #         for cue in self.__map.get(wildcard, []):
-    #             cue.execute(self.__actions_map[(wildcard, cue)])
-
-    def perform_action(self, key, **kwargs):
-        CommonController().controller_event.emit(key, **kwargs)
-        protocol = ControllerProtocol[kwargs['protocol'].upper()]
-        wildcards = CommonController().get_protocol(protocol).wildcard_keys(key)
-        if not wildcards:
-            for cue in self.__map.get(key, []):
-                cue.execute(self.__actions_map[(key, cue)])
-        else:
-            for w_key in wildcards:
-                for cue in self.__map.get(w_key, []):
-                    cue.execute(self.__actions_map[(w_key, cue)])
+        # execute for wildcard keys
+        for wildcard in wildcards:
+            for cue in self.__map.get(wildcard, []):
+                cue.execute(self.__actions_map[(wildcard, cue)])
 
     def __cue_added(self, cue):
         cue.property_changed.connect(self.cue_changed)
@@ -122,17 +94,3 @@ class Controller(Plugin):
     def __cue_removed(self, cue):
         cue.property_changed.disconnect(self.cue_changed)
         self.delete_from_map(cue)
-
-    def __load_protocols(self):
-        # TODO: move to CommonController
-        protocols.load()
-        CommonController().populate_protcols(protocols.Protocols)
-
-        for protocol_class in protocols.Protocols:
-            protocol = protocol_class()
-            # TODO: connect to CommonController Signal
-            # CommonController().controller_event.connect(self.perform_action)
-            protocol.protocol_event.connect(self.perform_action)
-
-            # TODO: remove this, CommonController should hold protocols
-            self.__protocols[protocol_class.__name__.lower()] = protocol
