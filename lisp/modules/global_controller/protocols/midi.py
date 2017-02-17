@@ -66,6 +66,7 @@ class Midi(Protocol):
         else:
             return ()
 
+    @staticmethod
     def wildcard_keys(key):
         """
         method returns possible wildcard keys of a midi message

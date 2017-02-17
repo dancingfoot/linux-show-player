@@ -136,6 +136,7 @@ class CommonController(metaclass=ABCSingleton):
         return self.__protocols[p_type] if p_type in self.__protocols else None
 
     def change_key_str(self, action, protocol, new_key):
+        print("change_key_str", new_key)
         # TODO: get rid of this reverse dict search
         keys = [key for key, val in self.__keys__.items() if
                 val[1] == action.get_controller() and val[0] is protocol]
@@ -150,8 +151,9 @@ class CommonController(metaclass=ABCSingleton):
 
             for action in GlobalAction:
                 # TODO: use protocol methods
-                key = tuple(config['MidiInput'].get(action.name.lower(), '').replace(' ', '').split(','))
-                key_str = self.get_protocol(ControllerProtocol.MIDI).key_from_values(key[0], channel, *key[:1])
+                protocol = self.get_protocol(ControllerProtocol.MIDI)
+                values = protocol.values_from_key(config['MidiInput'].get(action.name.lower(), ''))
+                key_str = protocol.key_from_values(values[0], channel, *values[1:])
                 if key_str:
                     self.set_key(action, ControllerProtocol.MIDI, key_str)
 
@@ -184,11 +186,11 @@ class CommonController(metaclass=ABCSingleton):
 
         if not wildcards:
             if key in self.__keys__:
-                self.__keys__[key][1].execute(protocol, *args)
+                self.__keys__[key][1].execute(protocol_type)
         else:
-            for wildcard in self.__keys__.get(wildcards, []):
+            for wildcard in wildcards:
                 if wildcard in self.__keys__:
-                    self.__keys__[wildcard][1].execute(protocol, *args)
+                    self.__keys__[wildcard][1].execute(protocol_type)
 
         # forward key to other listeners (e.g. controller plugins)
         self.controller_event.emit(key, wildcards)

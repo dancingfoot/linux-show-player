@@ -18,11 +18,10 @@
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtCore import Qt, QT_TRANSLATE_NOOP
-from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QComboBox, QGridLayout, QLabel, QSpinBox, QLineEdit, QDoubleSpinBox
+from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QComboBox, QGridLayout, QLabel, QSpinBox, QLineEdit
 
 from lisp.modules import check_module
 from lisp.core.configuration import config
-from lisp.core.protocol import Protocol
 from lisp.ui.settings.settings_page import SettingsPage
 from lisp.ui.ui_utils import translate
 from lisp.modules.global_controller.global_controller_common import GlobalAction, CommonController, ControllerProtocol
@@ -63,13 +62,15 @@ class MidiControllerSettings(SettingsPage):
 
     def __msg_changed(self, action):
         channel = str(self.channelSpinbox.value())
-        if self.__widgets[action][2].value() < 0:
-            key = ' '.join((self.__widgets[action][0].currentText(),
+        msg_type = self.__widgets[action][0].currentText()
+
+        if len(MSGS_ATTRIBUTES[msg_type]) < 3:
+            key = ' '.join((msg_type,
                             channel,
                             str(self.__widgets[action][1].value())))
             CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
         else:
-            key = ' '.join((self.__widgets[action][0].currentText(),
+            key = ' '.join((msg_type,
                             channel,
                             str(self.__widgets[action][1].value()),
                             str(self.__widgets[action][2].value())))
@@ -121,7 +122,6 @@ class MidiControllerSettings(SettingsPage):
                 conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
                                                                      widget[1].value(),
                                                                      widget[2].value())
-
 
         return {'MidiInput': conf}
 
