@@ -67,13 +67,13 @@ class MidiControllerSettings(SettingsPage):
             key = ' '.join((self.__widgets[action][0].currentText(),
                             channel,
                             str(self.__widgets[action][1].value())))
-            CommonController().notify_key.emit(action, ControllerProtocol.MIDI, key)
+            CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
         else:
             key = ' '.join((self.__widgets[action][0].currentText(),
                             channel,
                             str(self.__widgets[action][1].value()),
                             str(self.__widgets[action][2].value())))
-            CommonController().notify_key.emit(action, ControllerProtocol.MIDI, key)
+            CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
 
     def __msg_type_changed(self, msg_type, action):
         # if you allow use other midi message than note_on/off, programm_change, control_change

@@ -47,10 +47,14 @@ class Controller(Plugin):
 
         # Register settings-page
         CueSettingsRegistry().add_item(ControllerSettings)
+
+        # TODO: move to CommonController
         # Load available protocols
         self.__load_protocols()
 
     def init(self):
+        # TODO: send signal to CommonController
+        # CommonController.notify_new_session.emit()
         for protocol in self.__protocols.values():
             protocol.init()
 
@@ -58,6 +62,8 @@ class Controller(Plugin):
         self.__map.clear()
         self.__actions_map.clear()
 
+        # TODO: send signal to CommonController
+        # CommonController.notify_del_session.emit()
         for protocol in self.__protocols.values():
             protocol.reset()
 
@@ -65,6 +71,7 @@ class Controller(Plugin):
         if property_name == 'controller':
             self.delete_from_map(cue)
 
+            # TODO: CommonController().get_protocol(ControllerProtocol.MIDI.name.lower())
             for protocol in self.__protocols:
                 for key, action in value.get(protocol, []):
                     if key not in self.__map:
@@ -77,6 +84,24 @@ class Controller(Plugin):
         for key in self.__map:
             self.__map[key].discard(cue)
             self.__actions_map.pop((key, cue), None)
+
+
+    # def perform_action(self, key, wildcards):
+    #     # TODO: remove emit signal
+    #     # CommonController().controller_event.emit(key, **kwargs)
+    #
+    #     # TODO: move wildcard filtering to CommonController
+    #     # protocol = ControllerProtocol[kwargs['protocol'].upper()]
+    #     # wildcards = CommonController().get_protocol(protocol).wildcard_keys(key)
+    #
+    #     # execute for actual key
+    #     for cue in self.__map.get(key, []):
+    #         cue.execute(self.__actions_map[(key, cue)])
+    #
+    #     # execute for wildcard keys
+    #     for wildcard in wildcards:
+    #         for cue in self.__map.get(wildcard, []):
+    #             cue.execute(self.__actions_map[(wildcard, cue)])
 
     def perform_action(self, key, **kwargs):
         CommonController().controller_event.emit(key, **kwargs)
@@ -99,11 +124,15 @@ class Controller(Plugin):
         self.delete_from_map(cue)
 
     def __load_protocols(self):
+        # TODO: move to CommonController
         protocols.load()
         CommonController().populate_protcols(protocols.Protocols)
 
         for protocol_class in protocols.Protocols:
             protocol = protocol_class()
+            # TODO: connect to CommonController Signal
+            # CommonController().controller_event.connect(self.perform_action)
             protocol.protocol_event.connect(self.perform_action)
 
+            # TODO: remove this, CommonController should hold protocols
             self.__protocols[protocol_class.__name__.lower()] = protocol

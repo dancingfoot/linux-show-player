@@ -82,10 +82,21 @@ class CommonController(metaclass=ABCSingleton):
         self.__keys__ = {}
         self.__protocols = {}
 
-        self.controller_event = Signal()
-        self.notify_key = Signal()
-        self.controller_event.connect(self.perform_action)
-        self.notify_key.connect(self.notify_key_changed)
+        self.controller_event = Signal()  # key, *args, **kwargs
+        self.notify_key_changed = Signal()  # GlobalAction, ControllerProtocol, str
+        self.notify_new_session = Signal()
+        self.notify_del_session = Signal()
+
+        self.controller_event.connect(self.perform_action) # key, list(wildcard keys)
+        self.notify_key_changed.connect(self.change_key_str)
+
+        # TODO: connect to protocol signal
+        # protocol.protocol_event.connect(self.perform_action)
+
+    # TODO: CommonController holds protocols
+    @property
+    def protocols(self):
+        return self.__protocols.values()
 
     def populate_protcols(self, protocols):
         for protocol in protocols:
@@ -96,7 +107,8 @@ class CommonController(metaclass=ABCSingleton):
         self.get_settings()
 
     def query_protocol(self, p_str):
-        if p_str.upper() in ControllerProtocol.__members__.keys() and ControllerProtocol[p_str.upper()] in self.__protocols:
+        if p_str.upper() in ControllerProtocol.__members__.keys() \
+                and ControllerProtocol[p_str.upper()] in self.__protocols:
             return ControllerProtocol[p_str.upper()]
         else:
             return None
@@ -104,7 +116,7 @@ class CommonController(metaclass=ABCSingleton):
     def get_protocol(self, p_type):
         return self.__protocols[p_type] if p_type in self.__protocols else None
 
-    def notify_key_changed(self, action, protocol, new_key):
+    def change_key_str(self, action, protocol, new_key):
         # TODO: get rid of this reverse dict search
         keys = [key for key, val in self.__keys__.items() if
                 val[1] == action.get_controller() and val[0] is protocol]
@@ -148,3 +160,18 @@ class CommonController(metaclass=ABCSingleton):
     def perform_action(self, key, *args, **kwargs):
         if key in self.__keys__:
             self.__keys__[key][1].execute(*args, **kwargs)
+
+        # # TODO: wildcard filtering
+        # protocol_type = self.query_protocol(kwargs['protocol'])
+        # protocol = protocol_type.get_protocol(protocol_type)
+        # wildcards = protocol.wildcard_keys(key)
+        #
+        # if not wildcards:
+        #     if key in self.__keys__:
+        #         self.__keys__[key][1].execute(*args, **kwargs)
+        # else:
+        #     for wc in wildcards:
+        #         self.__keys__[key][1].execute(*args, **kwargs)
+        #
+        # # TODO: self.controller_event.emit(key, wildcards)
+        # # self.controller_event.emit(key, wildcards)

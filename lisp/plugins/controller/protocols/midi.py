@@ -67,10 +67,13 @@ class Midi(Protocol):
             return ()
 
     def wildcard_keys(key):
-        """ rule: last element of a midi message can be wildcarded by using -1
-            if length > 3 msg type is not an sysex
+        """
+        method returns possible wildcard keys of a midi message
+        rule: last element of a midi message can be wildcarded by using -1
+        if length > 3 msg type is not an sysex
 
-        :rtype: object
+        :return: list of possible wildcard string to test against
+        :rtype: list
         """
         spl_msg = key.split()
         if len(spl_msg) > 3 and spl_msg[0] is not 'sysex':
@@ -79,11 +82,6 @@ class Midi(Protocol):
             return [' '.join((i for i in spl_msg))]
         else:
             return []
-
-        # for i in reversed(range(len(spl_msg) - 1, len(spl_msg))):
-        #     w_msg = spl_msg
-        #     w_msg[i] = -1
-        #     return ' '.join((str(i) for i in w_msg))
 
 
 class MidiSettings(CueSettingsPage):
