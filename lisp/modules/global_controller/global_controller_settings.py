@@ -157,7 +157,6 @@ class MidiControllerSettings(SettingsPage):
                 conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
                                                                      widget[1].value(),
                                                                      widget[2].value())
-                # print("get_settings: ", action, conf[action.name.lower()])
 
         return {'MidiInput': conf}
 

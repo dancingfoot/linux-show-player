@@ -147,6 +147,19 @@ class CommonController(metaclass=ABCSingleton):
         for old_key in keys:
             self.__keys__[new_key] = self.__keys__.pop(old_key)
 
+    def has_key(self, key, protocol=None):
+        keys = [key]
+        if protocol:
+            keys.extend(protocol.wildcard_keys(key))
+        else:
+            for i in self.protocols:
+                keys.extend(i.wildcard_keys(key))
+        for i in keys:
+            if self.__keys__.get(i, None):
+                return True
+
+        return False
+
     def get_settings(self):
         self.__keys__.clear()
 
