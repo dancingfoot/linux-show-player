@@ -43,10 +43,15 @@ class Controller:
 
     def execute(self, protocol, *args):
         if self.__protocols & protocol:
-            self.__signal.emit(*args)
+            # TODO: better Error handling
+            if len(args) < len(self.__arg_types):
+                # TODO: for number of arguments when adding callback, to avoid this error
+                raise RuntimeError("global_controller_common.Controller: wrong args number")
+            self.__signal.emit(*(self.__arg_types[i](args[i]) for i in range(len(self.__arg_types))))
 
     def add_callback(self, protocol, func):
         if isinstance(protocol, ControllerProtocol):
+            # TODO: check number of arguments against number of arguments protocol supports
             self.__protocols = protocol
             if self.__protocols is not ControllerProtocol.NONE:
                 self.__signal.connect(func)
@@ -54,7 +59,7 @@ class Controller:
                 raise elogging.error("GlobalController: Controller controller allready connected")
 
     @property
-    def arg_types(self):
+    def params(self):
         return self.__arg_types
 
 
@@ -71,11 +76,12 @@ class GlobalAction(Enum):
     RESUME_CURRENT = Controller()
     STOP_CURRENT = Controller()
     INTERRUPT_CURRENT = Controller()
-    GO_NUM = Controller(int)
+    START_NUM = Controller(int)
     PAUSE_NUM = Controller(int)
     RESUME_NUM = Controller(int)
     STOP_NUM = Controller(int)
     INTERRUPT_NUM = Controller(int)
+    SELECT_NUM = Controller(int)
     # VOLUME = Controller(float)
 
     def get_controller(self):
@@ -136,7 +142,6 @@ class CommonController(metaclass=ABCSingleton):
         return self.__protocols[p_type] if p_type in self.__protocols else None
 
     def change_key_str(self, action, protocol, new_key):
-        print("change_key_str", new_key)
         # TODO: get rid of this reverse dict search
         keys = [key for key, val in self.__keys__.items() if
                 val[1] == action.get_controller() and val[0] is protocol]
@@ -179,18 +184,21 @@ class CommonController(metaclass=ABCSingleton):
         if isinstance(action, GlobalAction) and isinstance(protocol, ControllerProtocol):
             self.__keys__[key] = (protocol, action.get_controller())
 
-    def perform_action(self, key, protocol_name):
+    def perform_action(self, key, protocol_name, *args):
         protocol_type = self.query_protocol(protocol_name)
         protocol = self.get_protocol(protocol_type)
         wildcards = protocol.wildcard_keys(key)
 
-        if not wildcards:
-            if key in self.__keys__:
-                self.__keys__[key][1].execute(protocol_type)
-        else:
+        for wildcard in wildcards:
+            if wildcard not in self.__keys__:
+                wildcards.remove(wildcard)
+
+        if wildcards:
             for wildcard in wildcards:
-                if wildcard in self.__keys__:
-                    self.__keys__[wildcard][1].execute(protocol_type)
+                self.__keys__[wildcard][1].execute(protocol_type, *args)
+        else:
+            if key in self.__keys__.keys():
+                self.__keys__[key][1].execute(protocol_type, *args)
 
         # forward key to other listeners (e.g. controller plugins)
         self.controller_event.emit(key, wildcards)
