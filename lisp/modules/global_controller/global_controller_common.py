@@ -142,6 +142,7 @@ class CommonController(metaclass=ABCSingleton):
         return self.__protocols[p_type] if p_type in self.__protocols else None
 
     def change_key_str(self, action, protocol, new_key):
+        print("change key ", new_key, action)
         # TODO: get rid of this reverse dict search
         keys = [key for key, val in self.__keys__.items() if
                 val[1] == action.get_controller() and val[0] is protocol]
@@ -188,6 +189,10 @@ class CommonController(metaclass=ABCSingleton):
         protocol_type = self.query_protocol(protocol_name)
         protocol = self.get_protocol(protocol_type)
         wildcards = protocol.wildcard_keys(key)
+        print(key, wildcards, self.__keys__.keys())
+
+        # forward key to other listeners (e.g. controller plugins)
+        self.controller_event.emit(key, wildcards)
 
         for wildcard in wildcards:
             if wildcard not in self.__keys__:
@@ -202,5 +207,3 @@ class CommonController(metaclass=ABCSingleton):
             if key in self.__keys__.keys():
                 self.__keys__[key][1].execute(protocol_type, *args)
 
-        # forward key to other listeners (e.g. controller plugins)
-        self.controller_event.emit(key, wildcards)

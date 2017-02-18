@@ -58,7 +58,15 @@ class Midi(Protocol):
 
     @staticmethod
     def key_from_values(*args):
-        return ' '.join((str(i) for i in args))
+        if -1 in args:
+            if all(i < 0 for i in args[args.index(-1):]):
+                return '{0} {1}'.format(args[0], ' '.join((str(i) for i in args[1:] if i > -1)))
+            else:
+                elogging.error("Protocol Midi: cannot create key from value",
+                               details='wildcards should only appear at the end of the message')
+                return ''
+        else:
+            return ' '.join((str(i) for i in args))
 
     @staticmethod
     def values_from_key(message_str):
@@ -73,8 +81,10 @@ class Midi(Protocol):
     def wildcard_keys(key):
         """
         method returns possible wildcard keys of a midi message
-        rule: last element of a midi message can be wildcarded by using -1
-        if length > 3 msg type is not an sysex
+        a wildcard is set wildcard if value repr missing at the at of the key,
+        we let pass every any value then
+        example: if velocity part of a note_on is missing, we accept any value
+        wildcards are also used to pass arguments to ControllerActions with arguments
 
         :return: list of possible wildcard string to test against
         :rtype: list
@@ -82,7 +92,7 @@ class Midi(Protocol):
         spl_msg = key.split()
         if len(spl_msg) > 3 and spl_msg[0] is not 'sysex':
             spl_msg.pop()
-            spl_msg.append('-1')
+            # spl_msg.append('-1') # wildcards means value is empty now
             return [' '.join((i for i in spl_msg))]
         else:
             return []
@@ -166,7 +176,7 @@ class MidiSettings(CueSettingsPage):
     def load_settings(self, settings):
         if 'midi' in settings:
             for options in settings['midi']:
-                m_type, channel, note, velocity = Midi.values_from_key(options[0])
+                m_type, channel, note = Midi.values_from_key(options[0])
                 self.midiModel.appendRow(m_type, channel+1, note, options[1])
 
     def capture_message(self):

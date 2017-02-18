@@ -66,7 +66,6 @@ class Controller(Plugin):
             for protocol in CommonController().protocol_types:
                 for key, action in value.get(protocol.name.lower(), []):
                     if key not in self.__map:
-                        print("cue_changed ", key)
                         self.__map[key] = set()
 
                     self.__map[key].add(cue)

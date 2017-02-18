@@ -27,6 +27,8 @@ from lisp.ui.ui_utils import translate
 from lisp.modules.global_controller.global_controller_common import GlobalAction, CommonController, ControllerProtocol
 from lisp.modules.midi.midi_utils import ATTRIBUTES_RANGE, MSGS_ATTRIBUTES
 
+# TODO: fix calc arg len for shorter messages (programm_change)
+
 
 class MidiControllerSettings(SettingsPage):
     Name = QT_TRANSLATE_NOOP('SettingsPageName', 'MIDI input')
@@ -61,20 +63,13 @@ class MidiControllerSettings(SettingsPage):
             self.inputGroup.setEnabled(False)
 
     def __msg_changed(self, action):
-        channel = str(self.channelSpinbox.value())
-        msg_type = self.__widgets[action][0].currentText()
+        protocol = CommonController().get_protocol(ControllerProtocol.MIDI)
+        key = protocol.key_from_values(self.__widgets[action][0].currentText(),
+                                       self.channelSpinbox.value(),
+                                       self.__widgets[action][1].value(),
+                                       self.__widgets[action][2].value())
 
-        if len(MSGS_ATTRIBUTES[msg_type]) < 3:
-            key = ' '.join((msg_type,
-                            channel,
-                            str(self.__widgets[action][1].value())))
-            CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
-        else:
-            key = ' '.join((msg_type,
-                            channel,
-                            str(self.__widgets[action][1].value()),
-                            str(self.__widgets[action][2].value())))
-            CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
+        CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
 
     def __calc_arg_length(self, msg_type, action):
         arguments = MSGS_ATTRIBUTES[msg_type]
@@ -113,7 +108,7 @@ class MidiControllerSettings(SettingsPage):
         self.inputGroup.layout().addWidget(spinbox1, row, 2)
         spinbox2 = QSpinBox(self.inputGroup)
         spinbox2.setRange(-1, 127)
-        spinbox2.setSpecialValueText("none")
+        spinbox2.setSpecialValueText("*")
         spinbox2.valueChanged.connect(lambda: self.__msg_changed(action))
         self.inputGroup.layout().addWidget(spinbox2, row, 3)
 
@@ -150,7 +145,6 @@ class MidiControllerSettings(SettingsPage):
             self.__calc_arg_length(values[0], action)
 
     def load_settings(self, settings):
-        print("load settings")
         channel = int(config['MidiInput'].get('channel', 0))
         self.channelSpinbox.setValue(channel)
         self.load_midi_actions()
