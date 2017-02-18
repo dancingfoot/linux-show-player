@@ -39,18 +39,18 @@ class MidiControllerSettings(SettingsPage):
         self.__widgets = {}
 
         # Midi Input
-        self.oscInputGroup = QGroupBox(self)
-        self.oscInputGroup.setTitle(
+        self.inputGroup = QGroupBox(self)
+        self.inputGroup.setTitle(
             translate('GlobalControllerSettings', 'MIDI Input'))
-        self.oscInputGroup.setLayout(QGridLayout())
-        self.layout().addWidget(self.oscInputGroup)
+        self.inputGroup.setLayout(QGridLayout())
+        self.layout().addWidget(self.inputGroup)
 
         self.channelLabel = QLabel(translate('GlobalControllerSettings', 'Channel'),
-                                   self.oscInputGroup)
-        self.oscInputGroup.layout().addWidget(self.channelLabel, 0, 0)
-        self.channelSpinbox = QSpinBox(self.oscInputGroup)
+                                   self.inputGroup)
+        self.inputGroup.layout().addWidget(self.channelLabel, 0, 0)
+        self.channelSpinbox = QSpinBox(self.inputGroup)
         self.channelSpinbox.setRange(0, 15)
-        self.oscInputGroup.layout().addWidget(self.channelSpinbox, 0, 3)
+        self.inputGroup.layout().addWidget(self.channelSpinbox, 0, 3)
 
         row = 1
         for action in GlobalAction:
@@ -58,7 +58,7 @@ class MidiControllerSettings(SettingsPage):
             row += 1
 
         if not check_module('Midi'):
-            self.oscInputGroup.setEnabled(False)
+            self.inputGroup.setEnabled(False)
 
     def __msg_changed(self, action):
         channel = str(self.channelSpinbox.value())
@@ -101,21 +101,21 @@ class MidiControllerSettings(SettingsPage):
 
     def create_widget(self, action, row):
         label = QLabel(translate('GlobalControllerSettings', action.name.replace('_', ' ').capitalize()),
-                       self.oscInputGroup)
-        self.oscInputGroup.layout().addWidget(label, row, 0)
-        combo = QComboBox(self.oscInputGroup)
+                       self.inputGroup)
+        self.inputGroup.layout().addWidget(label, row, 0)
+        combo = QComboBox(self.inputGroup)
         combo.addItems(['note_on', 'note_off', 'control_change', 'program_change'])
         combo.currentTextChanged.connect(lambda msg_type: self.__msg_type_changed(msg_type, action))
-        self.oscInputGroup.layout().addWidget(combo, row, 1)
-        spinbox1 = QSpinBox(self.oscInputGroup)
+        self.inputGroup.layout().addWidget(combo, row, 1)
+        spinbox1 = QSpinBox(self.inputGroup)
         spinbox1.setRange(0, 127)
         spinbox1.valueChanged.connect(lambda: self.__msg_changed(action))
-        self.oscInputGroup.layout().addWidget(spinbox1, row, 2)
-        spinbox2 = QSpinBox(self.oscInputGroup)
+        self.inputGroup.layout().addWidget(spinbox1, row, 2)
+        spinbox2 = QSpinBox(self.inputGroup)
         spinbox2.setRange(-1, 127)
         spinbox2.setSpecialValueText("none")
         spinbox2.valueChanged.connect(lambda: self.__msg_changed(action))
-        self.oscInputGroup.layout().addWidget(spinbox2, row, 3)
+        self.inputGroup.layout().addWidget(spinbox2, row, 3)
 
         self.__widgets[action] = [combo, spinbox1, spinbox2]
 
@@ -167,11 +167,11 @@ class OscControllerSettings(SettingsPage):
         self.__widgets = {}
 
         # OSC Input
-        self.oscInputGroup = QGroupBox(self)
-        self.oscInputGroup.setTitle(
+        self.inputGroup = QGroupBox(self)
+        self.inputGroup.setTitle(
             translate('GlobalControllerSettings', 'OSC Input'))
-        self.oscInputGroup.setLayout(QGridLayout())
-        self.layout().addWidget(self.oscInputGroup)
+        self.inputGroup.setLayout(QGridLayout())
+        self.layout().addWidget(self.inputGroup)
 
         row = 1
         for action in GlobalAction:
@@ -179,7 +179,7 @@ class OscControllerSettings(SettingsPage):
             row += 1
 
         if not check_module('Osc'):
-            self.oscInputGroup.setEnabled(False)
+            self.inputGroup.setEnabled(False)
 
     def __msg_changed(self, action):
         pass
@@ -212,22 +212,22 @@ class OscControllerSettings(SettingsPage):
 
     def create_widget(self, action, row):
         label = QLabel(translate('GlobalControllerSettings', action.name.replace('_', ' ').capitalize()),
-                       self.oscInputGroup)
-        self.oscInputGroup.layout().addWidget(label, row, 0)
-        line_edit = QLineEdit(self.oscInputGroup)
+                       self.inputGroup)
+        self.inputGroup.layout().addWidget(label, row, 0)
+        line_edit = QLineEdit(self.inputGroup)
         line_edit.editingFinished.connect(lambda path: self.__msg_path_changed(path, action))
-        self.oscInputGroup.layout().addWidget(line_edit, row, 1)
+        self.inputGroup.layout().addWidget(line_edit, row, 1)
         if int in action.get_controller().params:
-            spinbox = QSpinBox(self.oscInputGroup)
+            spinbox = QSpinBox(self.inputGroup)
             spinbox.setRange(0, 127)
             spinbox.valueChanged.connect(lambda: self.__msg_changed(action))
-            self.oscInputGroup.layout().addWidget(spinbox, row, 2)
+            self.inputGroup.layout().addWidget(spinbox, row, 2)
             self.__widgets[action] = [line_edit, spinbox]
         elif float in action.get_controller().params:
-            spinbox = QSpinBox(self.oscInputGroup)
+            spinbox = QSpinBox(self.inputGroup)
             spinbox.setRange(0, 127)
             spinbox.valueChanged.connect(lambda: self.__msg_changed(action))
-            self.oscInputGroup.layout().addWidget(spinbox, row, 2)
+            self.inputGroup.layout().addWidget(spinbox, row, 2)
             self.__widgets[action] = [line_edit, spinbox]
         else:
             self.__widgets[action] = [line_edit]
