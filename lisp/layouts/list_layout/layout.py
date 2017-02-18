@@ -194,13 +194,40 @@ class ListLayout(QWidget, CueLayout):
         self.retranslateUi()
 
         CommonController().set_controller(GlobalAction.GO,
-                                          ControllerProtocol.ALL,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
                                           self.go)
 
         CommonController().set_controller(GlobalAction.STOP_ALL,
                                           ControllerProtocol.MIDI | ControllerProtocol.OSC,
                                           self.stop_all)
 
+        CommonController().set_controller(GlobalAction.PAUSE_ALL,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          self.pause_all)
+
+        CommonController().set_controller(GlobalAction.RESUME_ALL,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          self.restart_all)
+
+        CommonController().set_controller(GlobalAction.INTERRUPT_ALL,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          self.interrupt_all)
+
+        CommonController().set_controller(GlobalAction.RESET,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          self.reset)
+
+        CommonController().set_controller(GlobalAction.SELECT_NEXT,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          lambda: self.set_current_index(self.current_index() + 1))
+
+        CommonController().set_controller(GlobalAction.SELECT_PREV,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          lambda: self.set_current_index(self.current_index() - 1))
+
+        CommonController.set_controller(GlobalAction.SELECT_NUM,
+                                        ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                        self.set_current_index)
 
     def retranslateUi(self):
         self.showPlayingAction.setText(
@@ -240,6 +267,10 @@ class ListLayout(QWidget, CueLayout):
 
             if self._auto_continue:
                 self.set_current_index(self.current_index() + advance)
+
+    def reset(self):
+        self.interrupt_all()
+        self.set_current_index(0)
 
     def current_item(self):
         if self._model_adapter:

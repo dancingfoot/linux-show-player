@@ -197,6 +197,8 @@ class CommonController(metaclass=ABCSingleton):
             for wildcard in wildcards:
                 self.__keys__[wildcard][1].execute(protocol_type, *args)
         else:
+            # TODO: check this again when implementing OSC
+            # if wildcard is send, we drop the fully message if it appears
             if key in self.__keys__.keys():
                 self.__keys__[key][1].execute(protocol_type, *args)
 

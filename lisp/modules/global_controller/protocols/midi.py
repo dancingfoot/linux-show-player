@@ -30,6 +30,7 @@ from lisp.ui.qdelegates import ComboBoxDelegate, SpinBoxDelegate, \
 from lisp.ui.qmodels import SimpleTableModel
 from lisp.ui.settings.settings_page import CueSettingsPage
 from lisp.ui.ui_utils import translate
+from lisp.ui import elogging
 
 
 class Midi(Protocol):
@@ -43,9 +44,10 @@ class Midi(Protocol):
             MIDIInput().new_message.connect(self.__new_message)
 
     def __new_message(self, message):
+        elogging.debug("Protocol: Midi message: {}".format(message))
         types = {'note_on', 'note_off', 'program_change', 'control_change', 'sysex'}
         if message.type in types:
-            self.protocol_event.emit(Midi.key_from_message(message), Midi.__name__)
+            self.protocol_event.emit(Midi.key_from_message(message), Midi.__name__, message.bytes().pop())
 
     @staticmethod
     def key_from_message(message):
@@ -66,6 +68,7 @@ class Midi(Protocol):
         else:
             return ()
 
+    # TODO: dont use -1 as wildcard, we can leave it blank, so it will not break .lsp file format
     @staticmethod
     def wildcard_keys(key):
         """

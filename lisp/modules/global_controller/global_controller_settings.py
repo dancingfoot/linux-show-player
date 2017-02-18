@@ -76,37 +76,45 @@ class MidiControllerSettings(SettingsPage):
                             str(self.__widgets[action][2].value())))
             CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
 
-    def __msg_type_changed(self, msg_type, action):
-        # if you allow use other midi message than note_on/off, programm_change, control_change
-        # adapt this test
+    def __calc_arg_length(self, msg_type, action):
         arguments = MSGS_ATTRIBUTES[msg_type]
         if None in arguments:
             arguments.remove(None)
 
-        if len(arguments) < 3:
-            self.__widgets[action][2].setValue(-1)
-            self.__widgets[action][2].setEnabled(False)
-        else:
-            self.__widgets[action][2].setEnabled(True)
+        arg_size = len(arguments)
+        arg_size -= len(action.get_controller().params)
 
+        diff = len(self.__widgets[action]) - arg_size
+
+        self.__widgets[action][1].setEnabled(True)
+        self.__widgets[action][2].setEnabled(True)
+
+        if diff > 0:
+            for i in range(diff):
+                idx = i + 1
+                self.__widgets[action][-idx].setValue(-1)
+                self.__widgets[action][-idx].setEnabled(False)
+
+    def __msg_type_changed(self, msg_type, action):
+        self.__calc_arg_length(msg_type, action)
         self.__msg_changed(action)
 
     def create_widget(self, action, row):
-        label = QLabel(translate('GlobalControllerSettings', action.name.replace('_',' ').capitalize()),
+        label = QLabel(translate('GlobalControllerSettings', action.name.replace('_', ' ').capitalize()),
                        self.oscInputGroup)
         self.oscInputGroup.layout().addWidget(label, row, 0)
         combo = QComboBox(self.oscInputGroup)
         combo.addItems(['note_on', 'note_off', 'control_change', 'program_change'])
-        combo.currentTextChanged.connect(lambda msg_type:  self.__msg_type_changed(msg_type, action))
+        combo.currentTextChanged.connect(lambda msg_type: self.__msg_type_changed(msg_type, action))
         self.oscInputGroup.layout().addWidget(combo, row, 1)
         spinbox1 = QSpinBox(self.oscInputGroup)
         spinbox1.setRange(0, 127)
-        spinbox1.valueChanged.connect(lambda:  self.__msg_changed(action))
+        spinbox1.valueChanged.connect(lambda: self.__msg_changed(action))
         self.oscInputGroup.layout().addWidget(spinbox1, row, 2)
         spinbox2 = QSpinBox(self.oscInputGroup)
         spinbox2.setRange(-1, 127)
         spinbox2.setSpecialValueText("none")
-        spinbox2.valueChanged.connect(lambda:  self.__msg_changed(action))
+        spinbox2.valueChanged.connect(lambda: self.__msg_changed(action))
         self.oscInputGroup.layout().addWidget(spinbox2, row, 3)
 
         self.__widgets[action] = [combo, spinbox1, spinbox2]
@@ -127,7 +135,6 @@ class MidiControllerSettings(SettingsPage):
 
     def load_midi_actions(self):
         for action in GlobalAction:
-            # values = tuple(config['MidiInput'].get(action.name.lower(), '').replace(' ', '').split(','))
             protocol = CommonController().get_protocol(ControllerProtocol.MIDI)
             values = protocol.values_from_key(config['MidiInput'].get(action.name.lower(), ''))
 
@@ -140,7 +147,10 @@ class MidiControllerSettings(SettingsPage):
             else:
                 self.__widgets[action][2].setValue(-1)
 
+            self.__calc_arg_length(values[0], action)
+
     def load_settings(self, settings):
+        print("load settings")
         channel = int(config['MidiInput'].get('channel', 0))
         self.channelSpinbox.setValue(channel)
         self.load_midi_actions()
@@ -201,22 +211,22 @@ class OscControllerSettings(SettingsPage):
         # self.__msg_changed(action)
 
     def create_widget(self, action, row):
-        label = QLabel(translate('GlobalControllerSettings', action.name.replace('_',' ').capitalize()),
+        label = QLabel(translate('GlobalControllerSettings', action.name.replace('_', ' ').capitalize()),
                        self.oscInputGroup)
         self.oscInputGroup.layout().addWidget(label, row, 0)
         line_edit = QLineEdit(self.oscInputGroup)
-        line_edit.editingFinished.connect(lambda path:  self.__msg_path_changed(path, action))
+        line_edit.editingFinished.connect(lambda path: self.__msg_path_changed(path, action))
         self.oscInputGroup.layout().addWidget(line_edit, row, 1)
-        if int in action.get_controller().arg_types:
+        if int in action.get_controller().params:
             spinbox = QSpinBox(self.oscInputGroup)
             spinbox.setRange(0, 127)
-            spinbox.valueChanged.connect(lambda:  self.__msg_changed(action))
+            spinbox.valueChanged.connect(lambda: self.__msg_changed(action))
             self.oscInputGroup.layout().addWidget(spinbox, row, 2)
             self.__widgets[action] = [line_edit, spinbox]
-        elif float in action.get_controller().arg_types:
+        elif float in action.get_controller().params:
             spinbox = QSpinBox(self.oscInputGroup)
             spinbox.setRange(0, 127)
-            spinbox.valueChanged.connect(lambda:  self.__msg_changed(action))
+            spinbox.valueChanged.connect(lambda: self.__msg_changed(action))
             self.oscInputGroup.layout().addWidget(spinbox, row, 2)
             self.__widgets[action] = [line_edit, spinbox]
         else:
@@ -227,10 +237,10 @@ class OscControllerSettings(SettingsPage):
 
         if self.isEnabled():
             for action, widget in self.__widgets.items():
-                if int in action.get_controller().arg_types:
+                if int in action.get_controller().params:
                     # set key from path, value
                     pass
-                if float in action.get_controller().arg_types:
+                if float in action.get_controller().params:
                     # set key from path, value
                     pass
                 else:
@@ -248,4 +258,3 @@ class OscControllerSettings(SettingsPage):
     def load_settings(self, settings):
         channel = int(config['MidiInput'].get('channel', 0))
         self.load_osc_actions()
-
