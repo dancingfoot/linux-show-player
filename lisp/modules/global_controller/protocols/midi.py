@@ -62,7 +62,7 @@ class Midi(Protocol):
             if all(i < 0 for i in args[args.index(-1):]):
                 return '{0} {1}'.format(args[0], ' '.join((str(i) for i in args[1:] if i > -1)))
             else:
-                elogging.error("Protocol Midi: cannot create key from value",
+                elogging.error("Protocol Midi: cannot create key from value {}".format(args),
                                details='wildcards should only appear at the end of the message')
                 return ''
         else:
@@ -90,7 +90,7 @@ class Midi(Protocol):
         :rtype: list
         """
         spl_msg = key.split()
-        if len(spl_msg) > 3 and spl_msg[0] is not 'sysex':
+        if len(spl_msg) > 2 and spl_msg[0] is not 'sysex':
             spl_msg.pop()
             # spl_msg.append('-1') # wildcards means value is empty now
             return [' '.join((i for i in spl_msg))]

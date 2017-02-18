@@ -142,8 +142,6 @@ class CommonController(metaclass=ABCSingleton):
         return self.__protocols[p_type] if p_type in self.__protocols else None
 
     def change_key_str(self, action, protocol, new_key):
-        print("change key ", new_key, action)
-        # TODO: get rid of this reverse dict search
         keys = [key for key, val in self.__keys__.items() if
                 val[1] == action.get_controller() and val[0] is protocol]
         for old_key in keys:

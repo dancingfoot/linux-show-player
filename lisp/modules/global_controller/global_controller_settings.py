@@ -27,8 +27,6 @@ from lisp.ui.ui_utils import translate
 from lisp.modules.global_controller.global_controller_common import GlobalAction, CommonController, ControllerProtocol
 from lisp.modules.midi.midi_utils import ATTRIBUTES_RANGE, MSGS_ATTRIBUTES
 
-# TODO: fix calc arg len for shorter messages (programm_change)
-
 
 class MidiControllerSettings(SettingsPage):
     Name = QT_TRANSLATE_NOOP('SettingsPageName', 'MIDI input')
@@ -68,27 +66,61 @@ class MidiControllerSettings(SettingsPage):
                                        self.channelSpinbox.value(),
                                        self.__widgets[action][1].value(),
                                        self.__widgets[action][2].value())
+        if not key:
+            self.__widgets[action][1].setValue(0)
+            self.__widgets[action][2].setValue(0)
 
         CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
 
     def __calc_arg_length(self, msg_type, action):
         arguments = MSGS_ATTRIBUTES[msg_type]
+        params = len(action.get_controller().params)
         if None in arguments:
             arguments.remove(None)
 
-        arg_size = len(arguments)
-        arg_size -= len(action.get_controller().params)
+        arg_size = len(arguments) - 1 # ignore channel
 
-        diff = len(self.__widgets[action]) - arg_size
+        self.__widgets[action][1].blockSignals(True)
+        self.__widgets[action][2].blockSignals(True)
 
-        self.__widgets[action][1].setEnabled(True)
-        self.__widgets[action][2].setEnabled(True)
+        if arg_size == 1:
+            if params:
+                for i in range(1, 3):
+                    self.__widgets[action][i].setEnabled(False)
+                    self.__widgets[action][i].setRange(-1, 127)
+                    self.__widgets[action][i].setSpecialValueText("*")
+                    self.__widgets[action][i].setValue(-1)
+            else:
+                self.__widgets[action][1].setEnabled(True)
+                self.__widgets[action][1].setRange(0, 127)
+                self.__widgets[action][1].setSpecialValueText("")
+                self.__widgets[action][2].setEnabled(False)
+                self.__widgets[action][2].setRange(-1, 127)
+                self.__widgets[action][2].setSpecialValueText("*")
+                self.__widgets[action][2].setValue(-1)
+        elif arg_size == 2:
+            if params:
+                self.__widgets[action][1].setEnabled(True)
+                self.__widgets[action][1].setRange(0, 127)
+                self.__widgets[action][1].setSpecialValueText("")
+                self.__widgets[action][2].setEnabled(False)
+                self.__widgets[action][2].setRange(-1, 127)
+                self.__widgets[action][2].setSpecialValueText("*")
+                self.__widgets[action][2].setValue(-1)
+            else:
+                self.__widgets[action][1].setEnabled(True)
+                self.__widgets[action][1].setRange(0, 127)
+                self.__widgets[action][1].setSpecialValueText("")
+                self.__widgets[action][2].setEnabled(True)
+                self.__widgets[action][2].setRange(-1, 127)
+                self.__widgets[action][2].setSpecialValueText("*")
+                self.__widgets[action][2].setValue(-1)
+        else:
+            # TODO: catch this earlier, if there are Actions with more than one argument (arg_size < 1)
+            raise RuntimeError("MidiControllerSettings: too much args for message type: {}".format(msg_type))
 
-        if diff > 0:
-            for i in range(diff):
-                idx = i + 1
-                self.__widgets[action][-idx].setValue(-1)
-                self.__widgets[action][-idx].setEnabled(False)
+        self.__widgets[action][1].blockSignals(False)
+        self.__widgets[action][2].blockSignals(False)
 
     def __msg_type_changed(self, msg_type, action):
         self.__calc_arg_length(msg_type, action)
@@ -125,6 +157,7 @@ class MidiControllerSettings(SettingsPage):
                 conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
                                                                      widget[1].value(),
                                                                      widget[2].value())
+                # print("get_settings: ", action, conf[action.name.lower()])
 
         return {'MidiInput': conf}
 
@@ -133,16 +166,16 @@ class MidiControllerSettings(SettingsPage):
             protocol = CommonController().get_protocol(ControllerProtocol.MIDI)
             values = protocol.values_from_key(config['MidiInput'].get(action.name.lower(), ''))
 
-            if len(values) > 1:
-                self.__widgets[action][0].setCurrentText(values[0])
-                self.__widgets[action][1].setValue(int(values[1]))
+            # message type
+            self.__widgets[action][0].setCurrentText(values[0])
 
-            if len(values) > 2:
-                self.__widgets[action][2].setValue(int(values[2]))
-            else:
-                self.__widgets[action][2].setValue(-1)
-
+            # set ranges and arg length
             self.__calc_arg_length(values[0], action)
+
+            # fill in values
+            for i in range(1, 3):
+                if len(values) > i:
+                    self.__widgets[action][i].setValue(int(values[i]))
 
     def load_settings(self, settings):
         channel = int(config['MidiInput'].get('channel', 0))
