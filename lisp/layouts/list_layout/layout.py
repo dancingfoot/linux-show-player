@@ -225,6 +225,46 @@ class ListLayout(QWidget, CueLayout):
                                           ControllerProtocol.MIDI | ControllerProtocol.OSC,
                                           lambda: self.set_current_index(self.current_index() - 1))
 
+        CommonController().set_controller(GlobalAction.PAUSE_SELECTED,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          lambda: self.current_index().
+                                          cue.pause(fade=config['ListLayout'].getboolean('PauseAllFade')))
+
+        CommonController().set_controller(GlobalAction.STOP_SELECTED,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          lambda: self.current_index().
+                                          cue.stop(fade=config['ListLayout'].getboolean('StopAllFade')))
+
+        CommonController().set_controller(GlobalAction.RESUME_SELECTED,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          lambda: self.current_index().
+                                          cue.restart(fade=config['ListLayout'].getboolean('RestartAllFade')))
+
+        CommonController().set_controller(GlobalAction.INTERRUPT_SELECTED,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          lambda: self.current_index().
+                                          cue.interrupt(fade=config['ListLayout'].getboolean('InterruptAllFade')))
+
+        CommonController().set_controller(GlobalAction.GO_NUM,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          self.go_num)
+
+        CommonController().set_controller(GlobalAction.PAUSE_NUM,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          self.index_pause)
+
+        CommonController().set_controller(GlobalAction.RESUME_NUM,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          self.index_restart)
+
+        CommonController().set_controller(GlobalAction.STOP_NUM,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          self.index_stop)
+
+        CommonController().set_controller(GlobalAction.INTERRUPT_NUM,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          self.index_interrupt)
+
         CommonController.set_controller(GlobalAction.SELECT_NUM,
                                         ControllerProtocol.MIDI | ControllerProtocol.OSC,
                                         self.set_current_index)
@@ -267,6 +307,39 @@ class ListLayout(QWidget, CueLayout):
 
             if self._auto_continue:
                 self.set_current_index(self.current_index() + advance)
+
+    def go_num(self, num):
+        self.set_current_index(num)
+        self.go()
+
+    def index_execute(self, cue_action, num):
+        item = self._model_adapter.item(num)
+        if item:
+            item.execute(cue_action)
+
+    def index_pause(self, num):
+        fade = config['ListLayout'].getboolean('PauseCueFade')
+        item = self._model_adapter.item(num)
+        if item:
+            item.pause(fade=fade)
+
+    def index_restart(self, num):
+        fade = config['ListLayout'].getboolean('RestartCueFade')
+        item = self._model_adapter.item(num)
+        if item:
+            item.pause(fade=fade)
+
+    def index_stop(self, num):
+        fade = config['ListLayout'].getboolean('StopCueFade')
+        item = self._model_adapter.item(num)
+        if item:
+            item.stop(fade=fade)
+
+    def index_interrupt(self, num):
+        fade = config['ListLayout'].getboolean('InterruptCueFade')
+        item = self._model_adapter.item(num)
+        if item:
+            item.interrupt(fade=fade)
 
     def reset(self):
         self.interrupt_all()
