@@ -113,7 +113,7 @@ class CommonController(metaclass=ABCSingleton):
                 self.__protocols[ControllerProtocol[p_name]] = protocol
             protocol.protocol_event.connect(self.perform_action)
 
-        self.get_settings()
+        self.__load_settings()
 
     @property
     def protocols(self):
@@ -160,25 +160,30 @@ class CommonController(metaclass=ABCSingleton):
 
         return False
 
-    def get_settings(self):
+    def __load_settings(self):
         self.__keys__.clear()
 
         if ControllerProtocol.MIDI in self.__protocols:
-            channel = config['MidiInput'].get('channel', 0)
+            if 'MidiInput' in config:
+                channel = config['MidiInput'].get('channel', 0)
 
-            for action in GlobalAction:
-                # TODO: use protocol methods
-                protocol = self.get_protocol(ControllerProtocol.MIDI)
-                values = protocol.values_from_key(config['MidiInput'].get(action.name.lower(), ''))
-                key_str = protocol.key_from_values(values[0], channel, *values[1:])
-                if key_str:
-                    self.set_key(action, ControllerProtocol.MIDI, key_str)
+                for action in GlobalAction:
+                    # TODO: use protocol methods
+                    protocol = self.get_protocol(ControllerProtocol.MIDI)
+                    values = protocol.values_from_key(config['MidiInput'].get(action.name.lower(), ''))
+                    if len(values):
+                        key_str = protocol.key_from_values(values[0], channel, *values[1:])
+                        if key_str:
+                            self.set_key(action, ControllerProtocol.MIDI, key_str)
+            else:
+                elogging.error("CommonController: no Midi Input settings found in application settings")
 
         if ControllerProtocol.KEYBOARD in self.__protocols:
-            # we bypass all action, using only gokey from ListLayout
-            key = config['ListLayout'].get('gokey', '')
-            if key:
-                self.set_key(GlobalAction.GO, ControllerProtocol.KEYBOARD, key)
+            if 'ListLayout' in config and not config['ListLayout'].get('gokey', ''):
+                # we bypass all action, using only gokey from ListLayout
+                key = config['ListLayout'].get('gokey', '')
+                if key:
+                    self.set_key(GlobalAction.GO, ControllerProtocol.KEYBOARD, key)
 
         if ControllerProtocol.OSC in self.__protocols:
             # TODO add OSC

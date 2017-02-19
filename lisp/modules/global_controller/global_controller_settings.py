@@ -160,26 +160,31 @@ class MidiControllerSettings(SettingsPage):
 
         return {'MidiInput': conf}
 
-    def load_midi_actions(self):
+    def load_midi_actions(self, settings):
         for action in GlobalAction:
             protocol = CommonController().get_protocol(ControllerProtocol.MIDI)
-            values = protocol.values_from_key(config['MidiInput'].get(action.name.lower(), ''))
+            # values = protocol.values_from_key(config['MidiInput'].get(action.name.lower(), ''))
+            values = protocol.values_from_key(settings.get(action.name.lower(), ''))
 
-            # message type
-            self.__widgets[action][0].setCurrentText(values[0])
+            if len(values):
+                # message type
+                self.__widgets[action][0].setCurrentText(values[0])
 
-            # set ranges and arg length
-            self.__calc_arg_length(values[0], action)
+                # set ranges and arg length
+                self.__calc_arg_length(values[0], action)
 
-            # fill in values
-            for i in range(1, 3):
-                if len(values) > i:
-                    self.__widgets[action][i].setValue(int(values[i]))
+                # fill in values
+                for i in range(1, 3):
+                    if len(values) > i:
+                        self.__widgets[action][i].setValue(int(values[i]))
 
     def load_settings(self, settings):
-        channel = int(config['MidiInput'].get('channel', 0))
+        settings = settings.get('MidiInput', {})
+
+        channel = int(settings.get('channel', 0))
         self.channelSpinbox.setValue(channel)
-        self.load_midi_actions()
+
+        self.load_midi_actions(settings)
 
 
 class OscControllerSettings(SettingsPage):
@@ -275,12 +280,12 @@ class OscControllerSettings(SettingsPage):
 
         return {'OscInput': conf}
 
-    def load_osc_actions(self):
+    def load_osc_actions(self, settings):
         for action in self.__widgets:
             # *get key from setting
             # *fillin widget values
             pass
 
     def load_settings(self, settings):
-        channel = int(config['MidiInput'].get('channel', 0))
-        self.load_osc_actions()
+        settings = settings.get('OscInput', {})
+        self.load_osc_actions(settings)
