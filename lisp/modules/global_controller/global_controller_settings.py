@@ -18,10 +18,9 @@
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtCore import Qt, QT_TRANSLATE_NOOP
-from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QComboBox, QGridLayout, QLabel, QSpinBox, QLineEdit
+from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QComboBox, QGridLayout, QLabel, QSpinBox, QLineEdit, QSizePolicy
 
 from lisp.modules import check_module
-from lisp.core.configuration import config
 from lisp.ui.settings.settings_page import SettingsPage
 from lisp.ui.ui_utils import translate
 from lisp.modules.global_controller.global_controller_common import GlobalAction, CommonController, ControllerProtocol
@@ -133,13 +132,16 @@ class MidiControllerSettings(SettingsPage):
         combo = QComboBox(self.inputGroup)
         combo.addItems(['note_on', 'note_off', 'control_change', 'program_change'])
         combo.currentTextChanged.connect(lambda msg_type: self.__msg_type_changed(msg_type, action))
+        combo.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed);
         self.inputGroup.layout().addWidget(combo, row, 1)
         spinbox1 = QSpinBox(self.inputGroup)
         spinbox1.setRange(0, 127)
+        spinbox1.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed);
         spinbox1.valueChanged.connect(lambda: self.__msg_changed(action))
         self.inputGroup.layout().addWidget(spinbox1, row, 2)
         spinbox2 = QSpinBox(self.inputGroup)
         spinbox2.setRange(-1, 127)
+        spinbox2.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed);
         spinbox2.setSpecialValueText("*")
         spinbox2.valueChanged.connect(lambda: self.__msg_changed(action))
         self.inputGroup.layout().addWidget(spinbox2, row, 3)

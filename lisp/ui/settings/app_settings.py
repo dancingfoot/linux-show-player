@@ -19,7 +19,7 @@
 
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QDialog, QListWidget, QStackedWidget, \
-    QDialogButtonBox
+    QDialogButtonBox, QHBoxLayout, QVBoxLayout
 
 from lisp.core.util import deep_update
 from lisp.ui.ui_utils import translate
@@ -36,15 +36,22 @@ class AppSettings(QDialog):
         self.setWindowTitle(translate('AppSettings', 'LiSP preferences'))
 
         self.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.setMaximumSize(635, 530)
-        self.setMinimumSize(635, 530)
-        self.resize(635, 530)
+        # self.setMaximumSize(800, 600)
+        # self.setMinimumSize(800, 600)
+        # self.resize(800, 600)
+
+        vBox = QVBoxLayout()
+        self.setLayout(vBox)
+        hBox = QHBoxLayout()
+        vBox.addLayout(hBox)
 
         self.listWidget = QListWidget(self)
-        self.listWidget.setGeometry(QtCore.QRect(5, 10, 185, 470))
+        hBox.addWidget(self.listWidget)
+        self.listWidget.setMaximumWidth(200)
+        self.listWidget.setMinimumWidth(200)
 
         self.sections = QStackedWidget(self)
-        self.sections.setGeometry(QtCore.QRect(200, 10, 430, 470))
+        hBox.addWidget(self.sections)
 
         for widget in self.SettingsWidgets:
             widget = widget(parent=self)
@@ -60,7 +67,8 @@ class AppSettings(QDialog):
         self.listWidget.currentItemChanged.connect(self._change_page)
 
         self.dialogButtons = QDialogButtonBox(self)
-        self.dialogButtons.setGeometry(10, 495, 615, 30)
+        # self.dialogButtons.setGeometry(10, 495, 615, 30)
+        vBox.addWidget(self.dialogButtons)
         self.dialogButtons.setStandardButtons(QDialogButtonBox.Cancel |
                                               QDialogButtonBox.Ok)
 
