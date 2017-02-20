@@ -38,6 +38,7 @@ from lisp.ui.settings.pages.cue_appearance import Appearance
 from lisp.ui.settings.pages.cue_general import CueGeneralSettings
 from lisp.ui.settings.pages.media_cue_settings import MediaCueSettings
 from lisp.ui.ui_utils import translate
+from lisp.modules.global_controller.global_controller_common import CommonController, GlobalAction, ControllerProtocol
 
 AppSettings.register_settings_widget(CartLayoutSettings)
 
@@ -166,6 +167,10 @@ class CartLayout(QTabWidget, CueLayout):
         self.retranslateUi()
 
         self.add_page()
+
+        CommonController().set_controller(GlobalAction.PAGE,
+                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          super().setCurrentIndex)
 
     def retranslateUi(self):
         self.new_page_action.setText(translate('CartLayout', 'Add page'))

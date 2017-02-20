@@ -47,6 +47,8 @@ class Controller:
             if len(args) < len(self.__arg_types):
                 # TODO: for number of arguments when adding callback, to avoid this error
                 raise RuntimeError("global_controller_common.Controller: wrong args number")
+            # TODO: remove this statement later
+            elogging.debug("{} : {}".format(protocol, *(self.__arg_types[i](args[i]) for i in range(len(self.__arg_types)))))
             self.__signal.emit(*(self.__arg_types[i](args[i]) for i in range(len(self.__arg_types))))
 
     def add_callback(self, protocol, func):
@@ -65,23 +67,24 @@ class Controller:
 
 class GlobalAction(Enum):
     GO = Controller()
-    PAUSE_ALL = Controller()
-    RESUME_ALL = Controller()
-    STOP_ALL = Controller()
-    INTERRUPT_ALL = Controller()
-    SELECT_NEXT = Controller()
-    SELECT_PREV = Controller()
-    RESET = Controller()
-    PAUSE_SELECTED = Controller()
-    RESUME_SELECTED = Controller()
-    STOP_SELECTED = Controller()
-    INTERRUPT_SELECTED = Controller()
-    GO_NUM = Controller(int)
-    PAUSE_NUM = Controller(int)
-    RESUME_NUM = Controller(int)
-    STOP_NUM = Controller(int)
-    INTERRUPT_NUM = Controller(int)
-    SELECT_NUM = Controller(int)
+    PAUSE_ALL = Controller()  # ListLayout
+    RESUME_ALL = Controller()  # ListLayout
+    STOP_ALL = Controller()  # ListLayout
+    INTERRUPT_ALL = Controller()  # ListLayout
+    SELECT_NEXT = Controller()  # ListLayout
+    SELECT_PREV = Controller()  # ListLayout
+    RESET = Controller()  # ListLayout
+    PAUSE_SELECTED = Controller()  # ListLayout
+    RESUME_SELECTED = Controller()  # ListLayout
+    STOP_SELECTED = Controller()  # ListLayout
+    INTERRUPT_SELECTED = Controller()  # ListLayout
+    GO_NUM = Controller(int)  # ListLayout
+    PAUSE_NUM = Controller(int)  # ListLayout
+    RESUME_NUM = Controller(int)  # ListLayout
+    STOP_NUM = Controller(int)  # ListLayout
+    INTERRUPT_NUM = Controller(int)  # ListLayout
+    SELECT_NUM = Controller(int)  # ListLayout
+    PAGE = Controller(int)  # CartLayout
     # VOLUME = Controller(float)
 
     def get_controller(self):
