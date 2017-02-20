@@ -167,10 +167,12 @@ class CartLayout(QTabWidget, CueLayout):
         self.retranslateUi()
 
         self.add_page()
-
         CommonController().set_controller(GlobalAction.PAGE,
                                           ControllerProtocol.MIDI | ControllerProtocol.OSC,
-                                          super().setCurrentIndex)
+                                          self.set_page)
+
+    def set_page(self, page):
+        self.setCurrentIndex(page)
 
     def retranslateUi(self):
         self.new_page_action.setText(translate('CartLayout', 'Add page'))
