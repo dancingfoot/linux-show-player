@@ -76,11 +76,13 @@ class Osc(Protocol):
     def wildcard_keys(key):
         """
     
-        :return: list of possible wildcard string to test against
+        :return: list of possible wildcard strings
         :rtype: list
         """
-        # TODO: implement
-        return []
+        # cut values of the osc message
+        values = Osc.values_from_key()
+        wildcard = key_from_values(values[0], values[1], '')
+        return [wildcard]
     
     
 class OscMessageDialog(QDialog):
