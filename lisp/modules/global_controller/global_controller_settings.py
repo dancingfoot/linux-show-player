@@ -69,7 +69,7 @@ class MidiControllerSettings(SettingsPage):
             self.__widgets[action][1].setValue(0)
             self.__widgets[action][2].setValue(0)
 
-        CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
+            # CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
 
     def __calc_arg_length(self, msg_type, action):
         arguments = MSGS_ATTRIBUTES[msg_type]
@@ -77,7 +77,7 @@ class MidiControllerSettings(SettingsPage):
         if None in arguments:
             arguments.remove(None)
 
-        arg_size = len(arguments) - 1 # ignore channel
+        arg_size = len(arguments) - 1  # ignore channel
 
         self.__widgets[action][1].blockSignals(True)
         self.__widgets[action][2].blockSignals(True)
@@ -160,6 +160,8 @@ class MidiControllerSettings(SettingsPage):
                                                                      widget[1].value(),
                                                                      widget[2].value())
 
+                CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
+
         return {'MidiInput': conf}
 
     def load_midi_actions(self, settings):
@@ -214,52 +216,18 @@ class OscControllerSettings(SettingsPage):
         if not check_module('Osc'):
             self.inputGroup.setEnabled(False)
 
-    def __msg_changed(self, action):
-        pass
-        # channel = str(self.channelSpinbox.value())
-        # if self.__widgets[action][2].value() < 0:
-        #     key = ' '.join((self.__widgets[action][0].currentText(),
-        #                     channel,
-        #                     str(self.__widgets[action][1].value())))
-        #     CommonController().notify_key.emit(action, GlobalProtocol.MIDI, key)
-        # else:
-        #     key = ' '.join((self.__widgets[action][0].currentText(),
-        #                     channel,
-        #                     str(self.__widgets[action][1].value()),
-        #                     str(self.__widgets[action][2].value())))
-        #     CommonController().notify_key.emit(action, GlobalProtocol.MIDI, key)
-
-    def __msg_path_changed(self, msg_type, action):
-        pass
-        # arguments = MSGS_ATTRIBUTES[msg_type]
-        # if None in arguments:
-        #     arguments.remove(None)
-        # 
-        # if len(arguments) < 3:
-        #     self.__widgets[action][2].setValue(-1)
-        #     self.__widgets[action][2].setEnabled(False)
-        # else:
-        #     self.__widgets[action][2].setEnabled(True)
-        # 
-        # self.__msg_changed(action)
-
     def create_widget(self, action, row):
         label = QLabel(translate('GlobalControllerSettings', action.name.replace('_', ' ').capitalize()),
                        self.inputGroup)
         self.inputGroup.layout().addWidget(label, row, 0)
         line_edit = QLineEdit(self.inputGroup)
-        line_edit.editingFinished.connect(lambda path: self.__msg_path_changed(path, action))
         self.inputGroup.layout().addWidget(line_edit, row, 1)
-        if int in action.get_controller().params:
+
+        # chance to filter press/release or accept all values
+        if not len(action.get_controller().params):
             spinbox = QSpinBox(self.inputGroup)
-            spinbox.setRange(0, 127)
-            spinbox.valueChanged.connect(lambda: self.__msg_changed(action))
-            self.inputGroup.layout().addWidget(spinbox, row, 2)
-            self.__widgets[action] = [line_edit, spinbox]
-        elif float in action.get_controller().params:
-            spinbox = QSpinBox(self.inputGroup)
-            spinbox.setRange(0, 127)
-            spinbox.valueChanged.connect(lambda: self.__msg_changed(action))
+            spinbox.setRange(-1, 1)
+            spinbox.setSpecialValueText('*')
             self.inputGroup.layout().addWidget(spinbox, row, 2)
             self.__widgets[action] = [line_edit, spinbox]
         else:
@@ -269,25 +237,57 @@ class OscControllerSettings(SettingsPage):
         conf = {}
 
         if self.isEnabled():
+            protocol = CommonController().get_protocol(ControllerProtocol.OSC)
+
             for action, widget in self.__widgets.items():
-                if int in action.get_controller().params:
+                if len(action.get_controller().params):
                     # set key from path, value
-                    pass
-                if float in action.get_controller().params:
-                    # set key from path, value
-                    pass
+                    # example: /lisp/list/go_num 'i' * | /lisp/list/go_num 'f' *
+                    if int in action.get_controller().params:
+                        tag = 'i'
+                    else:
+                        tag = 'f'
+                    conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(), tag)
                 else:
                     # set key from path
-                    pass
+                    # example: /lisp/list/go 'i' 0 | /lisp/list/go 'i' 1 | /lisp/list/go 'i' *
+                    if widget[1].value() > -1:
+                        tag = 'i'
+                        conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
+                                                                             tag,
+                                                                             widget[1].value())
+                    else:
+                        conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
+                                                                             '')
+
+                CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
 
         return {'OscInput': conf}
 
     def load_osc_actions(self, settings):
-        for action in self.__widgets:
-            # *get key from setting
-            # *fillin widget values
-            pass
+        for action in GlobalAction:
+            protocol = CommonController().get_protocol(ControllerProtocol.OSC)
+            values = protocol.values_from_key(settings.get(str(action).lower(), ''))
+
+            params = action.get_controller().params
+
+            if params:
+                if len(values) == 2:
+                    self.__widgets[action][0].setCurrentText(values[0])
+                else:
+                    # TODO: error handling
+                    pass
+            else:
+                if len(values) == 2:
+                    self.__widgets[action][0].setCurrentText(values[0])
+                    self.__widgets[action][0].setValue(-1)
+                elif len(values) == 3:
+                    self.__widgets[action][0].setCurrentText(values[0])
+                    self.__widgets[action][0].setValue(int(values[2]))
+                else:
+                    # TODO: error handling
+                    pass
 
     def load_settings(self, settings):
         settings = settings.get('OscInput', {})
-        self.load_osc_actions(settings)
+        # self.load_osc_actions(settings)
