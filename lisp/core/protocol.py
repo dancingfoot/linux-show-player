@@ -37,7 +37,7 @@ class Protocol(metaclass=ABCMeta):
     """
 
     def __init__(self):
-        self.protocol_event = Signal()
+        self.protocol_event = Signal()  # message -> str, protocol -> str
 
     def init(self):
         pass
@@ -47,6 +47,7 @@ class Protocol(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
+    # TODO: change arguments to *args (osc)
     def key_from_message(message):
         """
         creates a unique key string from the given message

@@ -109,16 +109,16 @@ class OscCommon(metaclass=ABCSingleton):
         self.__log = deque([], 10)
         self.new_message = Signal()
 
-        # TODO: static paths and callbacks, make it editable through settings dialog
-        self.__callbacks = [
-            ['/lisp/list/go', None, _go],
-            ['/lisp/list/reset', None, _list_reset],
-            ['/lisp/list/cursor', 'i', _list_cursor],
-            ['/lisp/pause', None, _pause_all],
-            ['/lisp/play', None, _play_all],
-            ['/lisp/stop', None, _stop_all],
-            [None, None, self.__new_message]
-        ]
+        # # TODO: static paths and callbacks, make it editable through settings dialog
+        # self.__callbacks = [
+        #     ['/lisp/list/go', None, _go],
+        #     ['/lisp/list/reset', None, _list_reset],
+        #     ['/lisp/list/cursor', 'i', _list_cursor],
+        #     ['/lisp/pause', None, _pause_all],
+        #     ['/lisp/play', None, _play_all],
+        #     ['/lisp/stop', None, _stop_all],
+        #     [None, None, self.__new_message]
+        # ]
 
     # def push_log(self, path, args, types, src, success=True):
     #     self.__log.append([path, args, types, src, success])
@@ -132,8 +132,8 @@ class OscCommon(metaclass=ABCSingleton):
 
         try:
             self.__srv = ServerThread(int(config['OSC']['inport']))
-            for cb in self.__callbacks:
-                self.__srv.add_method(cb[0], cb[1], cb[2])
+            # for cb in self.__callbacks:
+            #     self.__srv.add_method(cb[0], cb[1], cb[2])
             self.__srv.start()
             self.__listening = True
             elogging.info('OSC: Server started ' + self.__srv.url, dialog=False)
@@ -157,6 +157,18 @@ class OscCommon(metaclass=ABCSingleton):
             target = Address(config['OSC']['hostname'], int(config['OSC']['outport']))
             self.__srv.send(target, path, *args)
 
+    def register_method(self, path, types):
+        self.__srv.del_method(None, None)
+        self.__srv.add_method(path, types, self.__new_message)
+        self.__srv.add_method(None, None, self.__unknown_message)
+
+    def del_method(self, path, types):
+        self.__srv.del_method(path, types)
+
     def __new_message(self, path, args, types):
+        # self.push_log(path, args, types, src, False)
+        self.new_message.emit(path, args, types)
+
+    def __unknown_message(self, path, args, types):
         # self.push_log(path, args, types, src, False)
         self.new_message.emit(path, args, types)

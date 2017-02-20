@@ -90,6 +90,9 @@ class GlobalAction(Enum):
     def get_controller(self):
         return self.value
 
+    def __str__(self):
+        return self.name.replace('_', ' ').lower()
+
 
 class CommonController(metaclass=ABCSingleton):
     """module provides global controls through protocol plugins"""
@@ -125,6 +128,10 @@ class CommonController(metaclass=ABCSingleton):
     @property
     def protocol_types(self):
         return self.__protocols.keys()
+
+    @property
+    def keys(self):
+        return self.__keys__.keys()
 
     def __new_session(self):
         for protocol in self.protocols:

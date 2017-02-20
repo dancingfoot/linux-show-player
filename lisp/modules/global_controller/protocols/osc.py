@@ -29,7 +29,7 @@ from lisp.modules import check_module
 from lisp.modules.osc.osc_common import OscCommon
 from lisp.ui.qdelegates import OscArgumentDelegate
 from lisp.modules.osc.osc_common import OscMessageType
-from lisp.plugins.controller.protocols.protocol import Protocol
+from lisp.core.protocol import Protocol
 from lisp.ui.qdelegates import ComboBoxDelegate, LineEditDelegate
 from lisp.ui.qmodels import SimpleTableModel
 from lisp.ui.settings.settings_page import CueSettingsPage
@@ -45,27 +45,44 @@ class Osc(Protocol):
             OscCommon().new_message.connect(self.__new_message)
 
     def __new_message(self, path, args, types):
-        key = Osc.key_from_message(path, types, args)
+        key = Osc.key_from_message((path, types, args))
         self.protocol_event.emit(key)
 
     @staticmethod
-    def key_from_message(path, types, args):
-        key = [path, types, *args]
+    # def key_from_message(path, types, args):
+    def key_from_message(*args):
+        # key = [path, types, *args]
+        key = (args[0], args[1], *args[2])
         return 'OSC{}'.format(key)
 
     @staticmethod
-    def key_from_values(path, types, args):
+    def key_from_values(*args):
+        path = args[0]
+        types = args[1]
         if not len(types):
             return "OSC['{0}', '{1}']".format(path, types)
         else:
-            return "OSC['{0}', '{1}', {2}]".format(path, types, args)
+            return "OSC['{0}', '{1}', {2}]".format(path, types, args[2])
 
     @staticmethod
-    def message_from_key(key):
-        key = ast.literal_eval(key[3:])
-        return key
+    def values_from_key(key):
+        if key:
+            key = ast.literal_eval(key[3:])
+            return key
+        else:
+            return []
 
-
+    @staticmethod
+    def wildcard_keys(key):
+        """
+    
+        :return: list of possible wildcard string to test against
+        :rtype: list
+        """
+        # TODO: implement
+        return []
+    
+    
 class OscMessageDialog(QDialog):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

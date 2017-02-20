@@ -156,10 +156,10 @@ class MidiControllerSettings(SettingsPage):
             for action, widget in self.__widgets.items():
                 protocol = CommonController().get_protocol(ControllerProtocol.MIDI)
 
-                conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
-                                                                     widget[1].value(),
-                                                                     widget[2].value())
-
+                key = protocol.key_from_values(widget[0].currentText(),
+                                               widget[1].value(),
+                                               widget[2].value())
+                conf[str(action).lower()] = key
                 CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
 
         return {'MidiInput': conf}
@@ -247,19 +247,21 @@ class OscControllerSettings(SettingsPage):
                         tag = 'i'
                     else:
                         tag = 'f'
-                    conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(), tag)
+                    # empty param list, aka any value
+                    key = protocol.key_from_values(widget[0].text(), tag, '')
                 else:
                     # set key from path
                     # example: /lisp/list/go 'i' 0 | /lisp/list/go 'i' 1 | /lisp/list/go 'i' *
                     if widget[1].value() > -1:
                         tag = 'i'
-                        conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
-                                                                             tag,
-                                                                             widget[1].value())
+                        key = protocol.key_from_values(widget[0].text(),
+                                                       tag,
+                                                       widget[1].value())
                     else:
-                        conf[action.name.lower()] = protocol.key_from_values(widget[0].currentText(),
-                                                                             '')
-
+                        # empty param list, aka any value
+                        tag = 'i'
+                        key = protocol.key_from_values(widget[0].text(), tag, '')
+                conf[str(action).lower()] = key
                 CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
 
         return {'OscInput': conf}
@@ -273,21 +275,21 @@ class OscControllerSettings(SettingsPage):
 
             if params:
                 if len(values) == 2:
-                    self.__widgets[action][0].setCurrentText(values[0])
+                    self.__widgets[action][0].setText(values[0])
                 else:
                     # TODO: error handling
                     pass
             else:
                 if len(values) == 2:
-                    self.__widgets[action][0].setCurrentText(values[0])
-                    self.__widgets[action][0].setValue(-1)
+                    self.__widgets[action][0].setText(values[0])
+                    self.__widgets[action][1].setValue(-1)
                 elif len(values) == 3:
-                    self.__widgets[action][0].setCurrentText(values[0])
-                    self.__widgets[action][0].setValue(int(values[2]))
+                    self.__widgets[action][0].setText(values[0])
+                    self.__widgets[action][1].setValue(int(values[2]))
                 else:
                     # TODO: error handling
                     pass
 
     def load_settings(self, settings):
         settings = settings.get('OscInput', {})
-        # self.load_osc_actions(settings)
+        self.load_osc_actions(settings)
