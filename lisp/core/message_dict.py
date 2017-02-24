@@ -150,6 +150,8 @@ class MessageDict:
                     return None, mask
             else:
                 return MessageDict.__item(self.__keys__[message_id], mask)
+        else:
+            return None, mask
 
     @staticmethod
     def __size(d, m):
@@ -177,7 +179,11 @@ class MessageDict:
         """
         if message_id in self.__keys__:
             if not mask:
-                return len(self.__keys__.get(message_id, {}))
+                v = self.__keys__.get(message_id)
+                if isinstance(v, dict):
+                    return len(v)
+                else:
+                    return 1
             else:
                 return MessageDict.__size(self.__keys__[message_id], mask)
         return 0
@@ -233,13 +239,15 @@ if __name__ == "__main__":
     keys.add('/lisp/list/go i', 'GO', (1,))
     keys.add('/lisp/list/stop i', 'STOP', (1,))
     keys.add('/lisp/list/pause i', 'PAUSE', (None,))
-    keys.add('Space', 'Go')
+    keys.add('Space', 'GO')
     print("Stored Messages: ", keys.dict)
 
     print("Value (0,1,8)      ", *keys.item('note_on', (0, 1, 8)))
     print("Value (0,1,None,1) ", *keys.item('note_on', (0, 1, None, 1)))
     print("Value (0,1,1)      ", *keys.item('note_on', (0, 1, 1)))
     print("Value (3,1,1)      ", *keys.item('note_on', (3, 1, 1)))
+    print("Value Space Go     ", *keys.item('Space'))
+    print("size note_on       ", keys.size('note_on'))
     print("size GO (0,1,None) ", keys.size('note_on', (0, 1, 2)))
     print("size (0,1)         ", keys.size('note_on', (0, 1)))
     print("size (0)           ", keys.size('note_on', (0,)))
