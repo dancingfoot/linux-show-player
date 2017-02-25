@@ -107,12 +107,12 @@ class MessageDict:
         :rtype: bool
         """
         if message_id not in self.__keys__:
-            if not mask:
-                self.__keys__[message_id] = cmd
-                return True
-            else:
-                self.__keys__[message_id] = {}
-        return MessageDict.__set_mask(self.__keys__[message_id], cmd, mask)
+            self.__keys__[message_id] = {}
+        if not mask:
+            self.__keys__[message_id] = cmd
+            return True
+        else:
+            return MessageDict.__set_mask(self.__keys__[message_id], cmd, mask)
 
     @staticmethod
     def __item(d, m):
