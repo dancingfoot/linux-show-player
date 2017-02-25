@@ -41,50 +41,65 @@ class Osc(Protocol):
     def __init__(self):
         super().__init__()
 
+        self.register_message_event.connect(self.__register_message)
+
         if check_module('osc') and OscCommon().listening:
             OscCommon().new_message.connect(self.__new_message)
 
     def __new_message(self, path, args, types):
-        key = Osc.key_from_message((path, types, args))
-        self.protocol_event.emit(key)
+        elogging.debug("Protocol: OSC message: {0}, {1}, {2}".format(path, types, args))
+        key = Osc.id_from_message(path, types, args)
+        self.protocol_event.emit(Osc.__name__, key, *args)
+
+    def __register_message(self, new_key, old_key=None):
+        if old_key:
+            path = Osc().values_from_str(old_key)[0]
+            types = Osc().values_from_str(old_key)[1]
+            OscCommon().remove_message(path, types)
+
+        path = Osc().values_from_str(new_key)[0]
+        types = Osc().values_from_str(new_key)[1]
+        OscCommon().register_message(path, types)
 
     @staticmethod
-    # def key_from_message(path, types, args):
-    def key_from_message(*args):
-        # key = [path, types, *args]
-        key = (args[0], args[1], *args[2])
-        return 'OSC{}'.format(key)
-
-    @staticmethod
-    def key_from_values(*args):
-        path = args[0]
-        types = args[1]
-        if not len(types):
-            return "OSC['{0}', '{1}']".format(path, types)
+    def id_from_message(*args):
+        if len(args) > 1:
+            return '{}, {}'.format(args[0], args[1])
         else:
-            return "OSC['{0}', '{1}', {2}]".format(path, types, args[2])
+            return None
 
     @staticmethod
-    def values_from_key(key):
-        if key:
-            key = ast.literal_eval(key[3:])
-            return key
+    def str_from_values(*args):
+        if len(args) >= 2 and isinstance(args[0], str) and isinstance(args[1], str):
+            return str(args)[1:-1]
         else:
-            return []
+            return ''
 
     @staticmethod
-    def wildcard_keys(key):
-        """
-    
-        :return: list of possible wildcard strings
-        :rtype: list
-        """
-        # cut values of the osc message
-        values = Osc.values_from_key()
-        wildcard = key_from_values(values[0], values[1], '')
-        return [wildcard]
-    
-    
+    def values_from_str(message_str):
+        if message_str:
+            values = ast.literal_eval(message_str)
+            return values
+        else:
+            return ()
+
+    @staticmethod
+    def parse_id(message_str):
+        if message_str:
+            values = ast.literal_eval(message_str)
+            return ', '.join(values[:2])
+        else:
+            return ''
+
+    @staticmethod
+    def parse_mask(message_str):
+        if message_str:
+            values = ast.literal_eval(message_str)
+            return tuple(values[2:])
+        else:
+            return ()
+
+
 class OscMessageDialog(QDialog):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -268,7 +283,7 @@ class OscSettings(CueSettingsPage):
         messages = []
 
         for row in self.oscModel.rows:
-            key = Osc.key_from_values(row[0], row[1], row[2])
+            key = Osc.str_from_values(row[0], row[1], row[2])
             messages.append((key, row[-1]))
 
         if messages:

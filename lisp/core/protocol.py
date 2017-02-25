@@ -37,7 +37,8 @@ class Protocol(metaclass=ABCMeta):
     """
 
     def __init__(self):
-        self.protocol_event = Signal()  # message -> str, protocol -> str
+        self.protocol_event = Signal()  # protocol -> str, key -> str, args -> args
+        self.register_message_event = Signal()  # new_key -> str, old_key = None -> str
 
     def init(self):
         pass
@@ -47,38 +48,45 @@ class Protocol(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    # TODO: change arguments to *args (osc)
-    def key_from_message(message):
+    def id_from_message(*args):
         """
-        creates a unique key string from the given message
+        creates a message id from the given message
         :param message: message received by a protocol plugin
         :type message:
         """
 
     @staticmethod
     @abstractmethod
-    def key_from_values(*args):
+    def str_from_values(*args):
         """
-        creates a unique key string from arguments
+        creates a unique message string from arguments
         :param args: arguments of protocol plugin messsage
         :type args: arguments
         """
 
     @staticmethod
     @abstractmethod
-    def values_from_key(key):
+    def values_from_str(message_str):
         """
-        unpacks values from a message key string
-        :param key: unique message key string
+        unpacks values from a message string
+        :param key: message key string
         :type key: str
         """
 
     @staticmethod
     @abstractmethod
-    def wildcard_keys(key):
+    def parse_id(message_str):
         """
-        creates possible wildcard keys of this key
-        wildcard: any = -1
-        :param key: key
-        :type key: str
+        unpacks message id from a message string
+        :param message_str: key
+        :type message_str: str
+        """
+
+    @staticmethod
+    @abstractmethod
+    def parse_mask(message_str):
+        """
+        unpacks message mask from a message string
+        :param message_str: value mask
+        :type message_str: tuple
         """

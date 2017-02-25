@@ -194,7 +194,7 @@ class ListLayout(QWidget, CueLayout):
         self.retranslateUi()
 
         CommonController().set_controller(GlobalAction.GO,
-                                          ControllerProtocol.MIDI | ControllerProtocol.OSC,
+                                          ControllerProtocol.ALL,
                                           self.go)
 
         CommonController().set_controller(GlobalAction.STOP_ALL,

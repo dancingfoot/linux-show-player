@@ -76,7 +76,7 @@ class Controller(Plugin):
             self.__map[key].discard(cue)
             self.__actions_map.pop((key, cue), None)
 
-    def perform_action(self, key, wildcards):
+    def perform_action(self, key):
         # execute for actual key
         for cue in self.__map.get(key, []):
             cue.execute(self.__actions_map[(key, cue)])

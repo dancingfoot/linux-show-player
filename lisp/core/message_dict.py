@@ -122,7 +122,7 @@ class MessageDict:
         for i in range(len(m)):
             if m[i] in d or None in d:
                 mask.append(m[i] if m[i] in d else None)
-                d = d.get(m[i], None)
+                d = d.get(m[i] if m[i] in d else None, None)
                 if not isinstance(d, dict):
                     return d, tuple(mask)
             else:
@@ -230,6 +230,7 @@ class MessageDict:
 if __name__ == "__main__":
     keys = MessageDict()
 
+    keys.add('note_on', 'GO',        (0, 1, None))
     keys.add('note_on', 'PAUSE',     (0, 1, 2))
     keys.add('note_on', 'ANOTHER',   (0, 1, 3))
     keys.add('note_on', 'SOMETHING', (0, 2, 1))
@@ -238,9 +239,11 @@ if __name__ == "__main__":
     keys.add('note_on', 'STOP',      (1, 3, 1))
     keys.add('/lisp/list/go i', 'GO', (1,))
     keys.add('/lisp/list/stop i', 'STOP', (1,))
-    keys.add('/lisp/list/pause i', 'PAUSE', (None,))
+    keys.add("'/lisp/list/pause' 'i'", 'PAUSE', (None,))
     keys.add('Space', 'GO')
     print("Stored Messages: ", keys.dict)
+
+    print("Value OSC PAUSE      ", *keys.item("'/lisp/list/pause' 'i'", (1,)))
 
     print("Value (0,1,8)      ", *keys.item('note_on', (0, 1, 8)))
     print("Value (0,1,None,1) ", *keys.item('note_on', (0, 1, None, 1)))

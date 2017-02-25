@@ -47,17 +47,26 @@ class Midi(Protocol):
         elogging.debug("Protocol: Midi message: {}".format(message))
         types = {'note_on', 'note_off', 'program_change', 'control_change', 'sysex'}
         if message.type in types:
-            self.protocol_event.emit(Midi.key_from_message(message), Midi.__name__, message.bytes().pop())
+            # self.protocol_event.emit(Midi.key_from_message(message), Midi.__name__, message.bytes().pop())
+            # TODO use key_from message
+            self.protocol_event.emit(Midi.__name__, message.type, message.channel, *message.bytes()[1:])
 
     @staticmethod
-    def key_from_message(message):
-        attr = MSGS_ATTRIBUTES[message.type]
-        val_lst = [message.type]
-        val_lst.extend([getattr(message, i) for i in attr if i is not None])
-        return Midi.key_from_values(*val_lst)
+    def id_from_message(*args):
+        if len(args):
+            message = args[0]
+            return message.type
+        else:
+            return None
+
+        # message = args[0]
+        # attr = MSGS_ATTRIBUTES[message.type]
+        # val_lst = [message.type]
+        # val_lst.extend([getattr(message, i) for i in attr if i is not None])
+        # return Midi.key_from_values(*val_lst)
 
     @staticmethod
-    def key_from_values(*args):
+    def str_from_values(*args):
         if -1 in args:
             if all(i < 0 for i in args[args.index(-1):]):
                 return '{0} {1}'.format(args[0], ' '.join((str(i) for i in args[1:] if i > -1)))
@@ -69,33 +78,28 @@ class Midi(Protocol):
             return ' '.join((str(i) for i in args))
 
     @staticmethod
-    def values_from_key(message_str):
+    def values_from_str(message_str):
         if message_str:
             values = message_str.split()
             return (values[0], *(int(i) for i in values[1:]))
         else:
             return ()
 
-    # TODO: dont use -1 as wildcard, we can leave it blank, so it will not break .lsp file format
     @staticmethod
-    def wildcard_keys(key):
-        """
-        method returns possible wildcard keys of a midi message
-        a wildcard is set wildcard if value repr missing at the at of the key,
-        we let pass every any value then
-        example: if velocity part of a note_on is missing, we accept any value
-        wildcards are also used to pass arguments to ControllerActions with arguments
-
-        :return: list of possible wildcard string to test against
-        :rtype: list
-        """
-        spl_msg = key.split()
-        if len(spl_msg) > 2 and spl_msg[0] is not 'sysex':
-            spl_msg.pop()
-            # spl_msg.append('-1') # wildcards means value is empty now
-            return [' '.join((i for i in spl_msg))]
+    def parse_id(message_str):
+        if message_str:
+            values = message_str.split()
+            return values[0]
         else:
-            return []
+            return ''
+
+    @staticmethod
+    def parse_mask(message_str):
+        if message_str:
+            values = message_str.split()
+            return tuple(int(i) for i in values[1:])
+        else:
+            return ()
 
 
 class MidiSettings(CueSettingsPage):
@@ -165,7 +169,7 @@ class MidiSettings(CueSettingsPage):
 
             for row in self.midiModel.rows:
                 # values from model + wildcard (-1) for velocity
-                message = Midi.key_from_values(row[0], row[1]-1, row[2], -1)
+                message = Midi.str_from_values(row[0], row[1] - 1, row[2])
                 messages.append((message, row[-1]))
 
             if messages:
@@ -176,8 +180,8 @@ class MidiSettings(CueSettingsPage):
     def load_settings(self, settings):
         if 'midi' in settings:
             for options in settings['midi']:
-                m_type, channel, note = Midi.values_from_key(options[0])
-                self.midiModel.appendRow(m_type, channel+1, note, options[1])
+                m_type, channel, note = Midi.values_from_str(options[0])
+                self.midiModel.appendRow(m_type, channel + 1, note, options[1])
 
     def capture_message(self):
         handler = MIDIInput()
@@ -193,7 +197,7 @@ class MidiSettings(CueSettingsPage):
 
     def __add_message(self, msg):
         if self.msgTypeCombo.currentData(Qt.UserRole) == msg.type:
-            self.midiModel.appendRow(msg.type, msg.channel+1, msg.note,
+            self.midiModel.appendRow(msg.type, msg.channel + 1, msg.note,
                                      self._default_action)
 
     def __new_message(self):

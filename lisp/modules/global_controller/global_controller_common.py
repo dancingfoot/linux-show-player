@@ -24,6 +24,7 @@ from lisp.core.signal import Signal
 from lisp.core.configuration import config
 from lisp.ui import elogging
 from lisp.modules.global_controller import protocols
+from lisp.core.message_dict import MessageDict
 
 
 class ControllerProtocol(Flag):
@@ -38,24 +39,25 @@ class Controller:
     def __init__(self, *arg_types):
         super().__init__()
         self.__signal = Signal()
-        self.__protocols = ControllerProtocol.NONE
+        self.__protocol_flag = ControllerProtocol.NONE
         self.__arg_types = arg_types
 
-    def execute(self, protocol, *args):
-        if self.__protocols & protocol:
-            # TODO: better Error handling
-            if len(args) < len(self.__arg_types):
-                # TODO: for number of arguments when adding callback, to avoid this error
-                raise RuntimeError("global_controller_common.Controller: wrong args number")
-            # TODO: remove this statement later
-            elogging.debug("{} : {}".format(protocol, *(self.__arg_types[i](args[i]) for i in range(len(self.__arg_types)))))
-            self.__signal.emit(*(self.__arg_types[i](args[i]) for i in range(len(self.__arg_types))))
+    @property
+    def flag(self):
+        return self.__protocol_flag
+
+    def execute(self, *args):
+        num_args = len(self.__arg_types)
+        if num_args <= len(args):
+            self.__signal.emit(*args[:num_args])
+        else:
+            elogging.debug("global_controller_common.Controller: not enough arguments")
 
     def add_callback(self, protocol, func):
         if isinstance(protocol, ControllerProtocol):
             # TODO: check number of arguments against number of arguments protocol supports
-            self.__protocols = protocol
-            if self.__protocols is not ControllerProtocol.NONE:
+            self.__protocol_flag = protocol
+            if self.__protocol_flag is not ControllerProtocol.NONE:
                 self.__signal.connect(func)
             else:
                 raise elogging.error("GlobalController: Controller controller allready connected")
@@ -65,6 +67,7 @@ class Controller:
         return self.__arg_types
 
 
+# TODO: rename to SessionAction, to distinct them from CueActions
 class GlobalAction(Enum):
     GO = Controller()
     PAUSE_ALL = Controller()  # ListLayout
@@ -91,22 +94,23 @@ class GlobalAction(Enum):
         return self.value
 
     def __str__(self):
-        return self.name.replace('_', ' ').lower()
+        return self.name.lower()
 
 
 class CommonController(metaclass=ABCSingleton):
     """module provides global controls through protocol plugins"""
 
     def __init__(self):
-        self.__keys__ = {}
+        # self.__keys__ = {}
+        self.__masks__ = MessageDict()
         self.__protocols = {}
 
         self.controller_event = Signal()  # key, list(wildcard keys)
-        self.notify_key_changed = Signal()  # GlobalAction, ControllerProtocol, str
+        # self.notify_key_changed = Signal()  # ControllerProtocol, str, str
         self.notify_new_session = Signal()
         self.notify_del_session = Signal()
 
-        self.notify_key_changed.connect(self.change_key_str)
+        # self.notify_key_changed.connect(self.change_key_str)
         self.notify_new_session.connect(self.__new_session)
         self.notify_del_session.connect(self.__del_session)
 
@@ -129,9 +133,9 @@ class CommonController(metaclass=ABCSingleton):
     def protocol_types(self):
         return self.__protocols.keys()
 
-    @property
-    def keys(self):
-        return self.__keys__.keys()
+    # @property
+    # def keys(self):
+    #     return self.__masks__.keys()
 
     def __new_session(self):
         for protocol in self.protocols:
@@ -151,53 +155,52 @@ class CommonController(metaclass=ABCSingleton):
     def get_protocol(self, p_type):
         return self.__protocols[p_type] if p_type in self.__protocols else None
 
-    def change_key_str(self, action, protocol, new_key):
-        keys = [key for key, val in self.__keys__.items() if
-                val[1] == action.get_controller() and val[0] is protocol]
-        for old_key in keys:
-            self.__keys__[new_key] = self.__keys__.pop(old_key)
+    def change_key(self, action, protocol_type, new_msg_str, old_msg_str):
+        protocol = self.get_protocol(protocol_type)
+        msg_id = protocol.parse_id(old_msg_str)
+        mask = protocol.parse_mask(old_msg_str)
 
-    def has_key(self, key, protocol=None):
-        keys = [key]
-        if protocol:
-            keys.extend(protocol.wildcard_keys(key))
-        else:
-            for i in self.protocols:
-                keys.extend(i.wildcard_keys(key))
-        for i in keys:
-            if self.__keys__.get(i, None):
-                return True
+        # TODO: remove recursive to clean up mask dict
+        self.__masks__.remove(msg_id, mask)
+        self.__set_key(action, protocol, new_msg_str)
 
-        return False
+    def __set_key(self, action, protocol, message_str):
+        if isinstance(action, GlobalAction):
+            key = protocol.parse_id(message_str)
+            mask = protocol.parse_mask(message_str)
+            if not self.__masks__.add(key, action.get_controller(), mask):
+                elogging.debug("CommonController: could not add key/mask: {} {}".format(key, mask))
+            protocol.register_message_event.emit(message_str)
 
     def __load_settings(self):
-        self.__keys__.clear()
+        self.__masks__.clear()
 
         if ControllerProtocol.MIDI in self.__protocols:
             if 'MidiInput' in config:
-                channel = config['MidiInput'].get('channel', 0)
-
                 for action in GlobalAction:
-                    # TODO: use protocol methods
                     protocol = self.get_protocol(ControllerProtocol.MIDI)
-                    values = protocol.values_from_key(config['MidiInput'].get(action.name.lower(), ''))
-                    if len(values):
-                        key_str = protocol.key_from_values(values[0], channel, *values[1:])
-                        if key_str:
-                            self.set_key(action, ControllerProtocol.MIDI, key_str)
+
+                    msg_str = config['MidiInput'].get(str(action), '')
+                    if msg_str:
+                        self.__set_key(action, protocol, msg_str)
             else:
                 elogging.error("CommonController: no Midi Input settings found in application settings")
 
         if ControllerProtocol.KEYBOARD in self.__protocols:
-            if 'ListLayout' in config and not config['ListLayout'].get('gokey', ''):
+            if 'ListLayout' in config and config['ListLayout'].get('gokey', ''):
+                protocol = self.get_protocol(ControllerProtocol.KEYBOARD)
                 # we bypass all action, using only gokey from ListLayout
-                key = config['ListLayout'].get('gokey', '')
-                if key:
-                    self.set_key(GlobalAction.GO, ControllerProtocol.KEYBOARD, key)
+                msg_str = config['ListLayout'].get('gokey', '')
+                if msg_str:
+                    self.__set_key(GlobalAction.GO, protocol, msg_str)
 
         if ControllerProtocol.OSC in self.__protocols:
-            # TODO add OSC
-            pass
+            if 'MidiInput' in config:
+                protocol = self.get_protocol(ControllerProtocol.OSC)
+                for action in GlobalAction:
+                    msg_str = config['OscInput'].get(str(action), '')
+                    if msg_str:
+                        self.__set_key(action, protocol, msg_str)
 
     def terminate(self):
         pass
@@ -207,28 +210,27 @@ class CommonController(metaclass=ABCSingleton):
         controller = action.get_controller()
         controller.add_callback(protocols, func)
 
-    def set_key(self, action, protocol, key):
-        if isinstance(action, GlobalAction) and isinstance(protocol, ControllerProtocol):
-            self.__keys__[key] = (protocol, action.get_controller())
-
-    def perform_action(self, key, protocol_name, *args):
+    def perform_action(self, protocol_name, key, *args):
         protocol_type = self.query_protocol(protocol_name)
-        protocol = self.get_protocol(protocol_type)
-        wildcards = protocol.wildcard_keys(key)
+
+        contr, mask = self.__masks__.item(key, args)
+        if contr and contr.flag & protocol_type:
+            args = self.__masks__.filter(mask, *args)
+            contr.execute(*args)
 
         # forward key to other listeners (e.g. controller plugins)
-        self.controller_event.emit(key, wildcards)
+        # self.controller_event.emit(key, tagged_keys)
 
-        for wildcard in wildcards:
-            if wildcard not in self.__keys__:
-                wildcards.remove(wildcard)
-
-        if wildcards:
-            for wildcard in wildcards:
-                self.__keys__[wildcard][1].execute(protocol_type, *args)
-        else:
-            # TODO: check this again when implementing OSC
-            # if wildcard is send, we drop the fully message if it appears
-            if key in self.__keys__.keys():
-                self.__keys__[key][1].execute(protocol_type, *args)
+        # for tag in tagged_keys:
+        #     if tag not in self.__keys__:
+        #         tagged_keys.remove(tag)
+        #
+        # if tagged_keys:
+        #     for wildcard in tagged_keys:
+        #         self.__keys__[wildcard][1].execute(protocol_type, *args)
+        # else:
+        #     # TODO: check this again when implementing OSC
+        #     # if wildcard is send, we drop the fully message if it appears
+        #     if key in self.__keys__.keys():
+        #         self.__keys__[key][1].execute(protocol_type, *args)
 

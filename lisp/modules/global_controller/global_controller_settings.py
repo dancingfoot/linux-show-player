@@ -21,6 +21,7 @@ from PyQt5.QtCore import Qt, QT_TRANSLATE_NOOP
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QComboBox, QGridLayout, QLabel, QSpinBox, QLineEdit, QSizePolicy
 
 from lisp.modules import check_module
+from lisp.core.configuration import config
 from lisp.ui.settings.settings_page import SettingsPage
 from lisp.ui.ui_utils import translate
 from lisp.modules.global_controller.global_controller_common import GlobalAction, CommonController, ControllerProtocol
@@ -59,9 +60,10 @@ class MidiControllerSettings(SettingsPage):
         if not check_module('Midi'):
             self.inputGroup.setEnabled(False)
 
+    # TODO: remove this
     def __msg_changed(self, action):
         protocol = CommonController().get_protocol(ControllerProtocol.MIDI)
-        key = protocol.key_from_values(self.__widgets[action][0].currentText(),
+        key = protocol.str_from_values(self.__widgets[action][0].currentText(),
                                        self.channelSpinbox.value(),
                                        self.__widgets[action][1].value(),
                                        self.__widgets[action][2].value())
@@ -152,42 +154,43 @@ class MidiControllerSettings(SettingsPage):
         conf = {}
 
         if self.isEnabled():
-            conf['channel'] = str(self.channelSpinbox.value())
             for action, widget in self.__widgets.items():
                 protocol = CommonController().get_protocol(ControllerProtocol.MIDI)
-
-                key = protocol.key_from_values(widget[0].currentText(),
-                                               widget[1].value(),
-                                               widget[2].value())
-                conf[str(action).lower()] = key
-                CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
+                msg_str = protocol.str_from_values(widget[0].currentText(),
+                                                   self.channelSpinbox.value(),
+                                                   widget[1].value(),
+                                                   widget[2].value())
+                conf[str(action)] = msg_str
+                old_str = config['MidiInput'][str(action)]
+                if msg_str != old_str:
+                    print(old_str)
+                    CommonController().change_key(action, ControllerProtocol.MIDI, msg_str, old_str)
 
         return {'MidiInput': conf}
 
     def load_midi_actions(self, settings):
         for action in GlobalAction:
             protocol = CommonController().get_protocol(ControllerProtocol.MIDI)
-            # values = protocol.values_from_key(config['MidiInput'].get(action.name.lower(), ''))
-            values = protocol.values_from_key(settings.get(action.name.lower(), ''))
+            values = protocol.values_from_str(settings.get(str(action), ''))
 
             if len(values):
                 # message type
+
+                self.channelSpinbox.setValue(values[1])
+
                 self.__widgets[action][0].setCurrentText(values[0])
 
                 # set ranges and arg length
                 self.__calc_arg_length(values[0], action)
 
-                # fill in values
-                for i in range(1, 3):
-                    if len(values) > i:
-                        self.__widgets[action][i].setValue(int(values[i]))
+                # fill in values:
+                if len(values) > 2:
+                    self.__widgets[action][1].setValue(int(values[2]))
+                if len(values) > 3:
+                    self.__widgets[action][2].setValue(int(values[3]))
 
     def load_settings(self, settings):
         settings = settings.get('MidiInput', {})
-
-        channel = int(settings.get('channel', 0))
-        self.channelSpinbox.setValue(channel)
-
         self.load_midi_actions(settings)
 
 
@@ -244,48 +247,45 @@ class OscControllerSettings(SettingsPage):
                     # set key from path, value
                     # example: /lisp/list/go_num 'i' * | /lisp/list/go_num 'f' *
                     if int in action.get_controller().params:
-                        tag = 'i'
+                        types = 'i'
                     else:
-                        tag = 'f'
-                    # empty param list, aka any value
-                    key = protocol.key_from_values(widget[0].text(), tag, '')
+                        types = 'f'
+                    msg_str = protocol.str_from_values(widget[0].text(), types, None)
                 else:
-                    # set key from path
                     # example: /lisp/list/go 'i' 0 | /lisp/list/go 'i' 1 | /lisp/list/go 'i' *
                     if widget[1].value() > -1:
-                        tag = 'i'
-                        key = protocol.key_from_values(widget[0].text(),
-                                                       tag,
-                                                       widget[1].value())
+                        types = 'i'
+                        msg_str = protocol.str_from_values(widget[0].text(),
+                                                           types,
+                                                           widget[1].value())
                     else:
-                        # empty param list, aka any value
-                        tag = 'i'
-                        key = protocol.key_from_values(widget[0].text(), tag, '')
-                conf[str(action).lower()] = key
-                CommonController().notify_key_changed.emit(action, ControllerProtocol.MIDI, key)
+                        types = 'i'
+                        msg_str = protocol.str_from_values(widget[0].text(), types, None)
+
+                conf[str(action)] = msg_str
+
+                old_str = config['OscInput'].get(str(action))
+                if msg_str != old_str:
+                    CommonController().change_key(action, ControllerProtocol.OSC, msg_str, old_str)
 
         return {'OscInput': conf}
 
     def load_osc_actions(self, settings):
         for action in GlobalAction:
             protocol = CommonController().get_protocol(ControllerProtocol.OSC)
-            values = protocol.values_from_key(settings.get(str(action).lower(), ''))
+            values = protocol.values_from_str(settings.get(str(action), ''))
 
             params = action.get_controller().params
 
             if params:
-                if len(values) == 2:
-                    self.__widgets[action][0].setText(values[0])
-                else:
-                    # TODO: error handling
-                    pass
+                self.__widgets[action][0].setText(values[0])
             else:
-                if len(values) == 2:
+                if len(values) == 3:
                     self.__widgets[action][0].setText(values[0])
-                    self.__widgets[action][1].setValue(-1)
-                elif len(values) == 3:
-                    self.__widgets[action][0].setText(values[0])
-                    self.__widgets[action][1].setValue(int(values[2]))
+                    if values[2]:
+                        self.__widgets[action][1].setValue(values[2])
+                    else:
+                        self.__widgets[action][1].setValue(-1)
                 else:
                     # TODO: error handling
                     pass

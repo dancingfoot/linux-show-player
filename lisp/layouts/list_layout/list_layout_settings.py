@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import QDoubleSpinBox
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QCheckBox, QComboBox, \
     QHBoxLayout, QLabel, QKeySequenceEdit, QGridLayout
 
+from lisp.core.configuration import config
 from lisp.ui.settings.settings_page import SettingsPage
 from lisp.ui.ui_utils import translate
 from lisp.ui.widgets import FadeComboBox
@@ -73,7 +74,7 @@ class ListLayoutSettings(SettingsPage):
         self.goKeyLabel = QLabel(self.behaviorsGroup)
         self.goKeyLayout.addWidget(self.goKeyLabel)
         self.goKeyEdit = QKeySequenceEdit(self.behaviorsGroup)
-        self.goKeyEdit.keySequenceChanged.connect(self.__go_key_changed)
+        # self.goKeyEdit.keySequenceChanged.connect(self.__go_key_changed)
         self.goKeyLayout.addWidget(self.goKeyEdit)
         self.goKeyLayout.setStretch(0, 2)
         self.goKeyLayout.setStretch(1, 5)
@@ -103,12 +104,6 @@ class ListLayoutSettings(SettingsPage):
         self.useFadeGroup.layout().addWidget(self.interruptAllFade, 3, 1)
 
         self.retranslateUi()
-
-    @staticmethod
-    def __go_key_changed(key_sequence):
-        CommonController().notify_key_changed.emit(GlobalAction.GO,
-                                                   ControllerProtocol.KEYBOARD,
-                                                   key_sequence.toString())
 
     def retranslateUi(self):
         self.behaviorsGroup.setTitle(
@@ -149,6 +144,10 @@ class ListLayoutSettings(SettingsPage):
             'restartallfade': str(self.restartAllFade.isChecked()),
             'interruptallfade': str(self.interruptAllFade.isChecked()),
         }
+
+        old_key = config['ListLayout'].get('gokey')
+        if old_key != settings['gokey']:
+            CommonController().change_key(GlobalAction.GO, ControllerProtocol.KEYBOARD, settings['gokey'], old_key)
 
         return {'ListLayout': settings}
 
