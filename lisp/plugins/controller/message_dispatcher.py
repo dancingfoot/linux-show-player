@@ -242,11 +242,9 @@ class MessageDispatcher:
 
     def __finalize(self, message_id, mask):
         # check size
-        print("FINALIZE!!!!!!!!!!!!!!")
+        print("FINALIZE!!!!!!!!!!!!!! - actually doing nothing")
         size = self.size(message_id, mask)
         item, mask = self.item(message_id, mask)
-        if item:
-            for i in item: print("ITEMS finalizer: ", i.cmd)
         if size == 0:
             print("try finalize - size", size)
             # TODO: check exact path ????

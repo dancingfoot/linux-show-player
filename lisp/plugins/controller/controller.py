@@ -18,21 +18,19 @@
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
 from lisp.application import Application
+from lisp.core.configuration import config
 from lisp.core.has_properties import Property
 from lisp.core.plugin import Plugin
 from lisp.cues.cue import Cue, CueAction
-from lisp.plugins.controller import protocols
-from lisp.plugins.controller.controller_settings import ControllerSettings
-from lisp.ui.settings.cue_settings import CueSettingsRegistry
-
-# SessionController
-from lisp.core.configuration import config
-from lisp.layouts.list_layout.layout import ListLayout
 from lisp.layouts.cart_layout.layout import CartLayout
-from lisp.ui import elogging
-from lisp.core.message_dispatcher import MessageDispatcher
+from lisp.layouts.list_layout.layout import ListLayout
+from lisp.plugins.controller import protocols
 from lisp.plugins.controller.controller_common import SessionAction, SessionCallbacks, ControllerCommon
+from lisp.plugins.controller.controller_settings import ControllerSettings
+from lisp.plugins.controller.message_dispatcher import MessageDispatcher
+from lisp.ui import elogging
 from lisp.ui.settings.app_settings import AppSettings
+from lisp.ui.settings.cue_settings import CueSettingsRegistry
 
 
 class CueHandler:
