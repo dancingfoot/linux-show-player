@@ -22,6 +22,29 @@ import mido
 from lisp.core.configuration import config
 
 
+MSGS_ATTRIBUTES = {
+    'note_on': ['channel', 'note', 'velocity'],
+    'note_off': ['channel', 'note', 'velocity'],
+    'control_change': ['channel', 'control', 'value'],
+    'program_change': ['channel', 'program', None],
+    'polytouch': ['channel', 'note', 'value'],
+    'pitchwheel': ['channel', 'pitch', None],
+    'song_select': ['song', None, None],
+    'songpos': ['pos', None, None],
+    'start': [None] * 3,
+    'stop': [None] * 3,
+    'continue': [None] * 3,
+}
+
+ATTRIBUTES_RANGE = {
+    'channel': (1, 16, -1), 'note': (0, 127, 0),
+    'velocity': (0, 127, 0), 'control': (0, 127, 0),
+    'program': (0, 127, 0), 'value': (0, 127, 0),
+    'song': (0, 127, 0), 'pitch': (-8192, 8191, 0),
+    'pos': (0, 16383, 0)
+}
+
+
 def str_msg_to_dict(str_message):
     message = mido.parse_string(str_message)
     dict_msg = {'type': message.type}

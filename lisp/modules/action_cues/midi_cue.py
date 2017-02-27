@@ -28,6 +28,7 @@ from lisp.modules.midi.midi_utils import str_msg_to_dict, dict_msg_to_str
 from lisp.ui.settings.cue_settings import CueSettingsRegistry
 from lisp.ui.settings.settings_page import SettingsPage
 from lisp.ui.ui_utils import translate
+from lisp.modules.midi.midi_utils import ATTRIBUTES_RANGE, MSGS_ATTRIBUTES
 
 
 class MidiCue(Cue):
@@ -52,28 +53,6 @@ class MidiCue(Cue):
 
 class MidiCueSettings(SettingsPage):
     Name = QT_TRANSLATE_NOOP('SettingsPageName', 'MIDI Settings')
-
-    MSGS_ATTRIBUTES = {
-        'note_on': ['channel', 'note', 'velocity'],
-        'note_off': ['channel', 'note', 'velocity'],
-        'control_change': ['channel', 'control', 'value'],
-        'program_change': ['channel', 'program', None],
-        'polytouch': ['channel', 'note', 'value'],
-        'pitchwheel': ['channel', 'pitch', None],
-        'song_select': ['song', None, None],
-        'songpos': ['pos', None, None],
-        'start': [None] * 3,
-        'stop': [None] * 3,
-        'continue': [None] * 3,
-    }
-
-    ATTRIBUTES_RANGE = {
-        'channel': (1, 16, -1), 'note': (0, 127, 0),
-        'velocity': (0, 127, 0), 'control': (0, 127, 0),
-        'program': (0, 127, 0), 'value': (0, 127, 0),
-        'song': (0, 127, 0), 'pitch': (-8192, 8191, 0),
-        'pos': (0, 16383, 0)
-    }
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
