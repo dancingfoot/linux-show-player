@@ -25,6 +25,57 @@ from lisp.plugins.controller import protocols
 from lisp.plugins.controller.controller_settings import ControllerSettings
 from lisp.ui.settings.cue_settings import CueSettingsRegistry
 
+# SessionController
+from enum import Enum
+from lisp.layouts.list_layout.layout import ListLayout
+from lisp.layouts.cart_layout.layout import CartLayout
+
+
+class SessionActionType(Enum):
+    GO = 'Go'
+    STOP = 'STOP'
+    PAGE = 'PAGE'
+
+
+class Handler:
+    def __init__(self, controlled_inst, action):
+        self.__instance = controlled_inst
+        self.__action = action
+
+
+class SessionController:
+    __CMD_LIST = {
+        SessionActionType.GO: ListLayout.go,
+        SessionActionType.STOP: ListLayout.stop_all
+    }
+
+    __CMD_CART = {
+        SessionActionType.PAGE: CartLayout.set_current_index
+    }
+
+    def __init__(self):
+        self.__layout = None
+        self.__cmd_dict = {}
+
+    def init(self):
+        # setup commands dependend on layout
+        self.__layout = Application().layout.__class__
+        print("Controller.init Layout: ", self.__layout)
+
+        # set command dict
+        if isinstance(Application().layout, ListLayout):
+            self.__cmd_dict = SessionController.__CMD_LIST
+        elif isinstance(Application().layout, CartLayout):
+            self.__cmd_dict = SessionController.__CMD_CART
+
+    def reset(self):
+        # clear command dict
+        self.__cmd_dict = {}
+
+    def execute(self, action):
+        cmd = self.__cmd_dict.get(action)
+        print("SessionController execute: ", action, self.__cmd_dict[cmd])
+
 
 class Controller(Plugin):
 
@@ -35,6 +86,9 @@ class Controller(Plugin):
         self.__map = {}
         self.__actions_map = {}
         self.__protocols = {}
+
+        # test
+        self.__session_controller = SessionController()
 
         # Register a new Cue property to store settings
         Cue.register_property('controller', Property(default={}))
@@ -48,9 +102,14 @@ class Controller(Plugin):
         # Load available protocols
         self.__load_protocols()
 
+        # Common Input Controller Module
+        # InputController().action_changed.connect(self.session_action_changed)
+
     def init(self):
         for protocol in self.__protocols.values():
             protocol.init()
+
+        self.__session_controller.init()
 
     def reset(self):
         self.__map.clear()
@@ -58,6 +117,29 @@ class Controller(Plugin):
 
         for protocol in self.__protocols.values():
             protocol.reset()
+
+        self.__session_controller.reset()
+
+    def session_action_changed(self, key, action):
+        self.delete_from_map(self.__session_controller)
+
+        if key not in self.__map:
+            self.__map[key] = set()
+
+        self.__map[key].add(self.__session_controller)
+        self.__actions_map[(key, self.__session_controller)] = action
+
+    # Note:
+    # MessageDict stores weakrefs of Handler Objects (cue, action) in a Weakset, which are stored
+    # by the Controller Plugin in
+    # dict (key : dict) -> dict (cue : handler)
+    #
+    # add (cue_changed):
+    #
+    #
+    # remove(cue) -> for key in self.__map: self.__map[key].pop(cue)
+    # InputController().remove(key) -> parse_key, parse_mask ???? => protocol !!!!
+    #
 
     def cue_changed(self, cue, property_name, value):
         if property_name == 'controller':
