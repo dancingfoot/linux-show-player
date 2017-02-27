@@ -23,9 +23,9 @@
 from weakref import WeakSet
 
 
-class MessageDict:
+class MessageDispatcher:
     """
-    class to handle message strings
+    class to filter and dispatch incoming messages from Midi, Osc and Keyboard
 
     nested dict holds message id and value masks as keys and store values or objects in a WeakSet,
     which can be used to execute commands or callbacks.
@@ -92,16 +92,16 @@ class MessageDict:
             else:
                 if not isinstance(d[m[0]], dict):
                     d[m[0]] = {}
-            return MessageDict.__set_mask(d[m[0]], cmd, m[1:])
+            return MessageDispatcher.__set_mask(d[m[0]], cmd, m[1:])
         elif len(m) == 1:
             if m[0] in d:
                 if isinstance(d[m[0]], dict):
                     # already stores on a depper level
                     return False
-                if isinstance(d[m[0]], MessageDict.__value_type):
+                if isinstance(d[m[0]], MessageDispatcher.__value_type):
                     d[m[0]].add(cmd)
                     return True
-            d[m[0]] = MessageDict.__value_type({cmd})
+            d[m[0]] = MessageDispatcher.__value_type({cmd})
             return True
         else:
             return False
@@ -124,7 +124,7 @@ class MessageDict:
             self.__keys__[message_id] = cmd
             return True
         else:
-            return MessageDict.__set_mask(self.__keys__[message_id], cmd, mask)
+            return MessageDispatcher.__set_mask(self.__keys__[message_id], cmd, mask)
 
     @staticmethod
     def __item(d, m):
@@ -161,7 +161,7 @@ class MessageDict:
                 else:
                     return None, mask
             else:
-                return MessageDict.__item(self.__keys__[message_id], mask)
+                return MessageDispatcher.__item(self.__keys__[message_id], mask)
         else:
             return None, mask
 
@@ -197,14 +197,14 @@ class MessageDict:
                 else:
                     return 1
             else:
-                return MessageDict.__size(self.__keys__[message_id], mask)
+                return MessageDispatcher.__size(self.__keys__[message_id], mask)
         return 0
 
     def __remove_mask(d, m):
         if isinstance(d, dict):
             if len(m) > 1:
                 if m[0] in d:
-                    return MessageDict.__remove_mask(d.get(m[0]), m[1:])
+                    return MessageDispatcher.__remove_mask(d.get(m[0]), m[1:])
             else:
                 if len(m) and m[0] in d:
                     return d.pop(m[0])
@@ -218,14 +218,14 @@ class MessageDict:
         :type message_id: str
         :param mask: value mask as tuple of integers or None
         :type mask: tuple
-        :return: removed part of the MessageDict (a value or dict)
+        :return: removed part of the MessageDispatcher (a value or dict)
         :rtype: stored value or dict
         """
         if message_id in self.__keys__:
             if not mask:
                 return self.__keys__.pop(message_id)
             else:
-                return MessageDict.__remove_mask(self.__keys__[message_id], mask)
+                return MessageDispatcher.__remove_mask(self.__keys__[message_id], mask)
 
     def clear(self):
         self.__keys__.clear()
@@ -254,7 +254,7 @@ if __name__ == "__main__":
     }
 
 
-    keys = MessageDict()
+    keys = MessageDispatcher()
 
     keys.add('note_on', d['GO'],        (0, 1, None))
     keys.add('note_on', d['PAUSE'],     (0, 1, 2))

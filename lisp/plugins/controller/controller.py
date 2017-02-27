@@ -29,18 +29,13 @@ from lisp.ui.settings.cue_settings import CueSettingsRegistry
 from enum import Enum
 from lisp.layouts.list_layout.layout import ListLayout
 from lisp.layouts.cart_layout.layout import CartLayout
+from lisp.core.message_dispatcher import MessageDispatcher
 
 
 class SessionActionType(Enum):
     GO = 'Go'
     STOP = 'STOP'
     PAGE = 'PAGE'
-
-
-class Handler:
-    def __init__(self, controlled_inst, action):
-        self.__instance = controlled_inst
-        self.__action = action
 
 
 class SessionController:
@@ -77,6 +72,17 @@ class SessionController:
         print("SessionController execute: ", action, self.__cmd_dict[cmd])
 
 
+class Handler:
+    def __init__(self, target, action):
+        if not (isinstance(target, SessionController) or isinstance(target, Cue)):
+            raise TypeError("Controller: wrong argument type for handler target {0}".format(type(target)))
+        if not (type(action) is CueAction or type(action) is SessionActionType):
+            raise TypeError("Controller: wrong argument type for action {0}".format(type(action)))
+
+        self.__target = target
+        self.__action = action
+
+
 class Controller(Plugin):
 
     Name = 'Controller'
@@ -86,6 +92,7 @@ class Controller(Plugin):
         self.__map = {}
         self.__actions_map = {}
         self.__protocols = {}
+        self.__dispatch = MessageDispatcher()
 
         # test
         self.__session_controller = SessionController()
@@ -130,7 +137,7 @@ class Controller(Plugin):
         self.__actions_map[(key, self.__session_controller)] = action
 
     # Note:
-    # MessageDict stores weakrefs of Handler Objects (cue, action) in a Weakset, which are stored
+    # MessageDispatcher stores weakrefs of Handler Objects (cue, action) in a Weakset, which are stored
     # by the Controller Plugin in
     # dict (key : dict) -> dict (cue : handler)
     #
