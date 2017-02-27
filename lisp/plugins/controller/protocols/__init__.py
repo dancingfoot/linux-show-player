@@ -20,16 +20,19 @@
 from os.path import dirname
 
 from lisp.core.loading import load_classes
-from lisp.ui.settings.settings_page import SettingsPage
+from lisp.ui.settings.settings_page import SettingsPage, CueSettingsPage
 
 Protocols = []
 ProtocolsSettingsPages = []
+ProtocolsAppSettings = []
 
 
 def load():
     for _, protocol in load_classes(__package__, dirname(__file__),
-                                    pre=('', ''), suf=('', 'Settings',)):
-        if issubclass(protocol, SettingsPage):
+                                    pre=('', '',''), suf=('', 'Settings','AppSettings')):
+        if issubclass(protocol, CueSettingsPage):
             ProtocolsSettingsPages.append(protocol)
+        elif issubclass(protocol, SettingsPage):
+            ProtocolsAppSettings.append(protocol)
         else:
             Protocols.append(protocol)

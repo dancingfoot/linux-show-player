@@ -343,6 +343,60 @@ class ListLayout(QWidget, CueLayout):
         for cue in self._model_adapter:
             cue.execute(CueAction.FadeOut)
 
+    def go_num(self, num):
+        self.set_current_index(num)
+        self.go()
+
+    def select_next(self):
+        self.set_current_index(self.current_index() + 1)
+
+    def select_prev(self):
+        self.set_current_index(self.current_index() - 1)
+
+    def pause_selected(self):
+        item = self.current_item()
+        item.cue.pause(fade=config['ListLayout'].getboolean('PauseCueFade'))
+
+    def stop_selected(self):
+        item = self.current_item()
+        item.cue.stop(fade=config['ListLayout'].getboolean('StopCueFade'))
+
+    def resume_selected(self):
+        item = self.current_item()
+        item.cue.restart(fade=config['ListLayout'].getboolean('RestartCueFade'))
+
+    def interrupt_selected(self):
+        item = self.current_item()
+        item.cue.interrupt(fade=config['ListLayout'].getboolean('InterruptCueFade'))
+
+    def pause_at_index(self, num):
+        fade = config['ListLayout'].getboolean('PauseCueFade')
+        item = self.model_adapter.item(num)
+        if item:
+            item.pause(fade=fade)
+
+    def restart_at_index(self, num):
+        fade = config['ListLayout'].getboolean('RestartCueFade')
+        item = self.model_adapter.item(num)
+        if item:
+            item.restart(fade=fade)
+
+    def stop_at_index(self, num):
+        fade = config['ListLayout'].getboolean('StopCueFade')
+        item = self.model_adapter.item(num)
+        if item:
+            item.stop(fade=fade)
+
+    def interrupt_at_index(self, num):
+        fade = config['ListLayout'].getboolean('InterruptCueFade')
+        item = self.model_adapter.item(num)
+        if item:
+            item.interrupt(fade=fade)
+
+    def reset(self):
+        self.interrupt_all()
+        self.set_current_index(0)
+
     def get_selected_cues(self, cue_class=Cue):
         cues = []
         for index in range(self.listView.topLevelItemCount()):

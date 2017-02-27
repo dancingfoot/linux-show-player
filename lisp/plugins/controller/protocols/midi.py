@@ -17,19 +17,26 @@
 # You should have received a copy of the GNU General Public License
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
+import inspect
+
 from PyQt5.QtCore import Qt, QT_TRANSLATE_NOOP
 from PyQt5.QtWidgets import QGroupBox, QPushButton, QComboBox, QVBoxLayout, \
-    QMessageBox, QTableView, QTableWidget, QHeaderView, QGridLayout
+    QMessageBox, QTableView, QTableWidget, QHeaderView, QGridLayout, QLabel, \
+    QSpinBox, QSizePolicy
 
 from lisp.modules import check_module
+from lisp.core.configuration import config
+from lisp.layouts.list_layout.layout import ListLayout
+from lisp.layouts.cart_layout.layout import CartLayout
 from lisp.modules.midi.midi_input import MIDIInput
-# from lisp.modules.midi.midi_utils import MSGS_ATTRIBUTES
+from lisp.modules.midi.midi_utils import MSGS_ATTRIBUTES
 from lisp.plugins.controller.protocols.protocol import Protocol
 from lisp.ui.qdelegates import ComboBoxDelegate, SpinBoxDelegate, \
     CueActionDelegate
 from lisp.ui.qmodels import SimpleTableModel
-from lisp.ui.settings.settings_page import CueSettingsPage
+from lisp.ui.settings.settings_page import CueSettingsPage, SettingsPage
 from lisp.ui.ui_utils import translate
+from lisp.plugins.controller.controller_common import ControllerCommon, SessionAction, SessionCallbacks
 from lisp.ui import elogging
 
 
@@ -237,3 +244,163 @@ class MidiView(QTableView):
 
         for column, delegate in enumerate(self.delegates):
             self.setItemDelegateForColumn(column, delegate)
+
+
+class MidiAppSettings(SettingsPage):
+    Name = QT_TRANSLATE_NOOP('SettingsPageName', 'MIDI input')
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.setLayout(QVBoxLayout())
+        self.layout().setAlignment(Qt.AlignTop)
+
+        self.__widgets = {}
+
+        # Midi Input
+        self.inputGroup = QGroupBox(self)
+        self.inputGroup.setTitle(
+            translate('GlobalControllerSettings', 'MIDI Input'))
+        self.inputGroup.setLayout(QGridLayout())
+        self.layout().addWidget(self.inputGroup)
+
+        self.channelLabel = QLabel(translate('GlobalControllerSettings', 'Channel'),
+                                   self.inputGroup)
+        self.inputGroup.layout().addWidget(self.channelLabel, 0, 0)
+        self.channelSpinbox = QSpinBox(self.inputGroup)
+        self.channelSpinbox.setRange(0, 15)
+        self.inputGroup.layout().addWidget(self.channelSpinbox, 0, 3)
+
+        row = 1
+        for action in SessionAction:
+            self.create_widget(action, row)
+            row += 1
+
+        if not check_module('Midi'):
+            self.inputGroup.setEnabled(False)
+
+    # TODO: add layout as param
+    def __calc_arg_length(self, msg_type, action):
+        arguments = MSGS_ATTRIBUTES[msg_type]
+
+        if action in SessionCallbacks.get_cart_layout():
+            params = SessionCallbacks.parameter(CartLayout, action)
+        elif action in SessionCallbacks.get_list_layout():
+            params = SessionCallbacks.parameter(ListLayout, action)
+        else:
+            raise KeyError("MidiAppSettings: no parameter list for action {0} found".format(action))
+
+        if None in arguments:
+            arguments.remove(None)
+
+        arg_size = len(arguments) - 1  # ignore channel
+
+        self.__widgets[action][1].blockSignals(True)
+        self.__widgets[action][2].blockSignals(True)
+
+        if arg_size == 1:
+            if params:
+                for i in range(1, 3):
+                    self.__widgets[action][i].setEnabled(False)
+                    self.__widgets[action][i].setRange(-1, 127)
+                    self.__widgets[action][i].setSpecialValueText("*")
+                    self.__widgets[action][i].setValue(-1)
+            else:
+                self.__widgets[action][1].setEnabled(True)
+                self.__widgets[action][1].setRange(0, 127)
+                self.__widgets[action][1].setSpecialValueText("")
+                self.__widgets[action][2].setEnabled(False)
+                self.__widgets[action][2].setRange(-1, 127)
+                self.__widgets[action][2].setSpecialValueText("*")
+                self.__widgets[action][2].setValue(-1)
+        elif arg_size == 2:
+            if params:
+                self.__widgets[action][1].setEnabled(True)
+                self.__widgets[action][1].setRange(0, 127)
+                self.__widgets[action][1].setSpecialValueText("")
+                self.__widgets[action][2].setEnabled(False)
+                self.__widgets[action][2].setRange(-1, 127)
+                self.__widgets[action][2].setSpecialValueText("*")
+                self.__widgets[action][2].setValue(-1)
+            else:
+                self.__widgets[action][1].setEnabled(True)
+                self.__widgets[action][1].setRange(0, 127)
+                self.__widgets[action][1].setSpecialValueText("")
+                self.__widgets[action][2].setEnabled(True)
+                self.__widgets[action][2].setRange(-1, 127)
+                self.__widgets[action][2].setSpecialValueText("*")
+                self.__widgets[action][2].setValue(-1)
+        else:
+            # TODO: catch this earlier, if there are Actions with more than one argument (arg_size < 1)
+            raise RuntimeError("MidiControllerSettings: too much args for message type: {}".format(msg_type))
+
+        self.__widgets[action][1].blockSignals(False)
+        self.__widgets[action][2].blockSignals(False)
+
+    def __msg_type_changed(self, msg_type, action):
+        self.__calc_arg_length(msg_type, action)
+        self.__msg_changed(action)
+
+    def create_widget(self, action, row):
+        label = QLabel(translate('GlobalControllerSettings', action.value),
+                       self.inputGroup)
+        self.inputGroup.layout().addWidget(label, row, 0)
+        combo = QComboBox(self.inputGroup)
+        combo.addItems(['note_on', 'note_off', 'control_change', 'program_change'])
+        # combo.currentTextChanged.connect(lambda msg_type: self.__msg_type_changed(msg_type, action))
+        combo.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.inputGroup.layout().addWidget(combo, row, 1)
+        spinbox1 = QSpinBox(self.inputGroup)
+        spinbox1.setRange(0, 127)
+        spinbox1.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        # spinbox1.valueChanged.connect(lambda: self.__msg_changed(action))
+        self.inputGroup.layout().addWidget(spinbox1, row, 2)
+        spinbox2 = QSpinBox(self.inputGroup)
+        spinbox2.setRange(-1, 127)
+        spinbox2.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        spinbox2.setSpecialValueText("*")
+        # spinbox2.valueChanged.connect(lambda: self.__msg_changed(action))
+        self.inputGroup.layout().addWidget(spinbox2, row, 3)
+
+        self.__widgets[action] = [combo, spinbox1, spinbox2]
+
+    def get_settings(self):
+        conf = {}
+
+        if self.isEnabled():
+            protocol = ControllerCommon().get_protocol('midi')
+            for action, widget in self.__widgets.items():
+                msg_str = protocol.str_from_values(widget[0].currentText(),
+                                                   self.channelSpinbox.value(),
+                                                   widget[1].value(),
+                                                   widget[2].value())
+                conf[action.name.lower()] = msg_str
+                old_str = config['MidiInput'][action.name.lower()]
+                if msg_str != old_str:
+                    ControllerCommon().session_action_changed.emit('midi', msg_str, action)
+
+        return {'MidiInput': conf}
+
+    def load_midi_actions(self, settings):
+        protocol = ControllerCommon().get_protocol('midi')
+        for action in SessionAction:
+            values = protocol.values_from_str(settings.get(action.name.lower(), ''))
+
+            if len(values):
+                # message type
+
+                self.channelSpinbox.setValue(values[1])
+
+                self.__widgets[action][0].setCurrentText(values[0])
+
+                # set ranges and arg length
+                self.__calc_arg_length(values[0], action)
+
+                # fill in values:
+                if len(values) > 2:
+                    self.__widgets[action][1].setValue(int(values[2]))
+                if len(values) > 3:
+                    self.__widgets[action][2].setValue(int(values[3]))
+
+    def load_settings(self, settings):
+        settings = settings.get('MidiInput', {})
+        self.load_midi_actions(settings)
