@@ -18,9 +18,16 @@
 # You should have received a copy of the GNU General Public License
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
-# TODO: purge empty paths
+# TODO: purge empty paths (weakref finalize)
+# TODO: do not use WeakSet when using finalize conflicts somehow
+# TODO: check returns (for items)
 
-from weakref import WeakSet
+from weakref import WeakSet, finalize
+
+
+class TestHandler:
+    def __init__(self, cmd):
+        self.cmd = cmd
 
 
 class MessageDispatcher:
@@ -121,10 +128,14 @@ class MessageDispatcher:
         if message_id not in self.__keys__:
             self.__keys__[message_id] = {}
         if not mask:
+            finalize(cmd, self.__finalize, message_id, mask)
             self.__keys__[message_id] = cmd
             return True
         else:
-            return MessageDispatcher.__set_mask(self.__keys__[message_id], cmd, mask)
+            if MessageDispatcher.__set_mask(self.__keys__[message_id], cmd, mask):
+                finalize(cmd, self.__finalize, message_id, mask)
+                return True
+            return False
 
     @staticmethod
     def __item(d, m):
@@ -151,8 +162,8 @@ class MessageDispatcher:
         :type message_id:
         :param mask:
         :type mask:
-        :return: value, tuple(mask)
-        :rtype: value, tuple
+        :return: WeakSet, tuple(mask)
+        :rtype: WeakSet, tuple
         """
         if message_id in self.__keys__:
             if not mask:
@@ -173,7 +184,9 @@ class MessageDispatcher:
             if m[i] in d:
                 d = d.get(m[i], None)
                 if not isinstance(d, dict):
-                    return len(d)
+                    print("len ", d, type(d), len(d), [i for i in d], len([i for i in d]))
+                    # real len, d is empty, but len return still old size
+                    return len([i for i in d])
             else:
                 return 0
         else:
@@ -195,7 +208,7 @@ class MessageDispatcher:
                 if isinstance(v, dict):
                     return len(v)
                 else:
-                    return 1
+                    return 1  # is that true
             else:
                 return MessageDispatcher.__size(self.__keys__[message_id], mask)
         return 0
@@ -227,6 +240,22 @@ class MessageDispatcher:
             else:
                 return MessageDispatcher.__remove_mask(self.__keys__[message_id], mask)
 
+    def __finalize(self, message_id, mask):
+        # check size
+        print("FINALIZE!!!!!!!!!!!!!!")
+        size = self.size(message_id, mask)
+        item, mask = self.item(message_id, mask)
+        if item:
+            for i in item: print("ITEMS finalizer: ", i.cmd)
+        if size == 0:
+            print("try finalize - size", size)
+            # TODO: check exact path ????
+            item, mask = self.item(message_id, mask)
+            if item:
+                print("finalize size 0: ", size, message_id, mask)
+        else:
+            print("not finalize size: ", size, [i for i in item], message_id, mask)
+
     def clear(self):
         self.__keys__.clear()
 
@@ -240,17 +269,14 @@ class MessageDispatcher:
 
 
 if __name__ == "__main__":
-    class Types:
-        def __init__(self, cmd):
-            self.cmd = cmd
 
     d = {
-        'GO': Types('GO'),
-        'PAUSE': Types('PAUSE'),
-        'STOP': Types('STOP'),
-        'INTERRUPT': Types('INTERRUPT'),
-        'NEXT': Types('NEXT'),
-        'PREV': Types('PREV')
+        'GO': TestHandler('GO'),
+        'PAUSE': TestHandler('PAUSE'),
+        'STOP': TestHandler('STOP'),
+        'INTERRUPT': TestHandler('INTERRUPT'),
+        'NEXT': TestHandler('NEXT'),
+        'PREV': TestHandler('PREV')
     }
 
 
@@ -261,8 +287,7 @@ if __name__ == "__main__":
     keys.add('note_on', d['STOP'],   (0, 1, 3))
     keys.add('note_on', d['INTERRUPT'], (1, 3, 1))
     keys.add('note_on', d['NEXT'], (1, 3, 2))
-    keys.add('note_on', d['STOP'],      (1, 3, 1))
-    keys.add('note_on', d['GO'],      (1, 3, 1))
+    keys.add('note_on', d['PREV'],      (1, 3, 1))
     # keys.add('/lisp/list/go i', 'GO', (1,))
     # keys.add('/lisp/list/stop i', 'STOP', (1,))
     # keys.add("'/lisp/list/pause' 'i'", 'PAUSE', (None,))
@@ -297,3 +322,10 @@ if __name__ == "__main__":
     print("items: ", [i.cmd for i in keys.item('note_on', (1, 3, 1))[0]], keys.size('note_on', (1,3,1)))
     d.pop('STOP')
     print("items: ", [i.cmd for i in keys.item('note_on', (1, 3, 1))[0]], keys.size('note_on', (1,3,1)))
+
+    print("POP PREV ========================")
+    d.pop('PREV')
+    print("POP INTERRUPT ========================")
+    d.pop('INTERRUPT')
+    print("DICT", d)
+    print("==================================================")
