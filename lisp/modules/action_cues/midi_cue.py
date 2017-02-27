@@ -67,7 +67,7 @@ class MidiCueSettings(SettingsPage):
         self.msgTypeLabel = QLabel(self.msgGroup)
         self.msgGroup.layout().addWidget(self.msgTypeLabel, 0, 0)
         self.msgTypeCombo = QComboBox(self.msgGroup)
-        self.msgTypeCombo.addItems(sorted(self.MSGS_ATTRIBUTES.keys()))
+        self.msgTypeCombo.addItems(sorted(MSGS_ATTRIBUTES .keys()))
         self.msgTypeCombo.currentTextChanged.connect(self.__type_changed)
         self.msgGroup.layout().addWidget(self.msgTypeCombo, 0, 1)
 
@@ -107,7 +107,7 @@ class MidiCueSettings(SettingsPage):
 
                 spin.setEnabled(True)
                 spin.setRange(
-                    *self.ATTRIBUTES_RANGE.get(attr_name, (0, 0, 0))[0:2])
+                    *ATTRIBUTES_RANGE.get(attr_name, (0, 0, 0))[0:2])
 
     def get_settings(self):
         msg_type = self.msgTypeCombo.currentText()
@@ -115,14 +115,14 @@ class MidiCueSettings(SettingsPage):
 
         for label, spin, attr_name in self.__attributes(msg_type):
             if spin.isEnabled():
-                offset = self.ATTRIBUTES_RANGE.get(attr_name, (0, 0, 0))[2]
+                offset = ATTRIBUTES_RANGE.get(attr_name, (0, 0, 0))[2]
                 msg_dict[attr_name] = spin.value() + offset
 
         return {'message': dict_msg_to_str(msg_dict)}
 
     def __attributes(self, msg_type):
         for (label, spin), attr in zip(self._data_widgets,
-                                       self.MSGS_ATTRIBUTES[msg_type]):
+                                       MSGS_ATTRIBUTES [msg_type]):
             yield label, spin, attr
 
     def load_settings(self, settings):
@@ -132,7 +132,7 @@ class MidiCueSettings(SettingsPage):
             self.msgTypeCombo.setCurrentText(dict_msg['type'])
 
             for label, spin, attr_name in self.__attributes(dict_msg['type']):
-                offset = self.ATTRIBUTES_RANGE.get(attr_name, (0, 0, 0))[2]
+                offset = ATTRIBUTES_RANGE.get(attr_name, (0, 0, 0))[2]
                 spin.setValue(dict_msg.get(label.text().lower(), 0) - offset)
 
 
