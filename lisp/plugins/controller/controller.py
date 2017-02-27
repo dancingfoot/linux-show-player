@@ -79,8 +79,8 @@ class Handler:
         if not (type(action) is CueAction or type(action) is SessionActionType):
             raise TypeError("Controller: wrong argument type for action {0}".format(type(action)))
 
-        self.__target = target
-        self.__action = action
+        self.target = target
+        self.action = action
 
 
 class Controller(Plugin):
@@ -89,10 +89,11 @@ class Controller(Plugin):
 
     def __init__(self):
         super().__init__()
-        self.__map = {}
-        self.__actions_map = {}
+        # self.__map = {}
+        # self.__actions_map = {}
+        self.__messages = {}
         self.__protocols = {}
-        self.__dispatch = MessageDispatcher()
+        self.__dispatcher = MessageDispatcher()
 
         # test
         self.__session_controller = SessionController()
@@ -119,8 +120,9 @@ class Controller(Plugin):
         self.__session_controller.init()
 
     def reset(self):
-        self.__map.clear()
-        self.__actions_map.clear()
+        # self.__map.clear()
+        # self.__actions_map.clear()
+        self.__dispatcher.clear()
 
         for protocol in self.__protocols.values():
             protocol.reset()
@@ -153,21 +155,40 @@ class Controller(Plugin):
             self.delete_from_map(cue)
 
             for protocol in self.__protocols:
-                for key, action in value.get(protocol, []):
-                    if key not in self.__map:
-                        self.__map[key] = set()
+                for msg_str, action in value.get(protocol, []):
 
-                    self.__map[key].add(cue)
-                    self.__actions_map[(key, cue)] = CueAction(action)
+                    # 1.) store handler with target and action, self.__messages
+                    if msg_str not in self.__messages:
+                        self.__messages[msg_str] = {}
+                    handler = Handler(cue, CueAction(action))
+                    self.__messages[msg_str][cue] = handler
+
+                    # 2.) create msg_id and value mask for message and put handler into MessageDispatcher
+                    #     MessageDispatcher only holds weakrefs, if the handler is deleted from self.__messages,
+                    #     its also removed from the MessageDispatcher
+                    msg_id = self.__protocols[protocol].parse_id(msg_str)
+                    mask = self.__protocols[protocol].parse_mask(msg_str)
+                    self.__dispatcher.add(msg_id, handler, mask)
 
     def delete_from_map(self, cue):
-        for key in self.__map:
-            self.__map[key].discard(cue)
-            self.__actions_map.pop((key, cue), None)
+        for msg_str in self.__messages:
+            if cue in self.__messages[msg_str]:
+                self.__messages[msg_str].pop(cue)
 
-    def perform_action(self, key):
-        for cue in self.__map.get(key, []):
-            cue.execute(self.__actions_map[(key, cue)])
+        # TODO: cleanup __dispatcher
+        # self.__dispatcher.clean_up()
+
+    # def perform_action(self, key):
+    def perform_action(self, protocol, msg_id, *args):
+        print(protocol, msg_id, *args)
+
+        items, mask = self.__dispatcher.item(msg_id, args)
+
+        if not items:
+            return
+
+        for item in items:
+            item.target.execute(item.action)
 
     def __cue_added(self, cue):
         cue.property_changed.connect(self.cue_changed)

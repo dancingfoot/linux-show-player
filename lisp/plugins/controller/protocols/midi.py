@@ -23,7 +23,7 @@ from PyQt5.QtWidgets import QGroupBox, QPushButton, QComboBox, QVBoxLayout, \
 
 from lisp.modules import check_module
 from lisp.modules.midi.midi_input import MIDIInput
-from lisp.modules.midi.midi_utils import MSGS_ATTRIBUTES
+# from lisp.modules.midi.midi_utils import MSGS_ATTRIBUTES
 from lisp.plugins.controller.protocols.protocol import Protocol
 from lisp.ui.qdelegates import ComboBoxDelegate, SpinBoxDelegate, \
     CueActionDelegate
@@ -49,7 +49,7 @@ class Midi(Protocol):
         if message.type in types:
             # self.protocol_event.emit(Midi.key_from_message(message), Midi.__name__, message.bytes().pop())
             # TODO use id from message
-            self.protocol_event.emit(Midi.__name__, message.type, message.channel, *message.bytes()[1:])
+            self.protocol_event.emit(Midi.__name__.lower(), message.type, message.channel, *message.bytes()[1:])
 
     @staticmethod
     def id_from_message(*args):
@@ -182,7 +182,7 @@ class MidiSettings(CueSettingsPage):
     def load_settings(self, settings):
         if 'midi' in settings:
             for options in settings['midi']:
-                m_type, channel, note = Midi.from_string(options[0])
+                m_type, channel, note = Midi.values_from_str(options[0])
                 self.midiModel.appendRow(m_type, channel+1, note, options[1])
 
     def capture_message(self):
