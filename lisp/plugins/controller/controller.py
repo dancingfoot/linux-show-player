@@ -32,7 +32,7 @@ from lisp.layouts.cart_layout.layout import CartLayout
 from lisp.core.message_dispatcher import MessageDispatcher
 
 
-class SessionActionType(Enum):
+class SessionAction(Enum):
     GO = 'Go'
     STOP = 'STOP'
     PAGE = 'PAGE'
@@ -40,12 +40,12 @@ class SessionActionType(Enum):
 
 class SessionController:
     __CMD_LIST = {
-        SessionActionType.GO: ListLayout.go,
-        SessionActionType.STOP: ListLayout.stop_all
+        SessionAction.GO: ListLayout.go,
+        SessionAction.STOP: ListLayout.stop_all
     }
 
     __CMD_CART = {
-        SessionActionType.PAGE: CartLayout.set_current_index
+        SessionAction.PAGE: CartLayout.set_current_index
     }
 
     def __init__(self):
@@ -76,7 +76,7 @@ class Handler:
     def __init__(self, target, action):
         if not (isinstance(target, SessionController) or isinstance(target, Cue)):
             raise TypeError("Controller: wrong argument type for handler target {0}".format(type(target)))
-        if not (type(action) is CueAction or type(action) is SessionActionType):
+        if not (type(action) is CueAction or type(action) is SessionAction):
             raise TypeError("Controller: wrong argument type for action {0}".format(type(action)))
 
         self.target = target
