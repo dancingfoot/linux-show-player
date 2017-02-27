@@ -18,6 +18,7 @@
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
 from lisp.core.signal import Signal
+from abc import abstractmethod, ABCMeta
 
 
 class Protocol:
@@ -43,3 +44,48 @@ class Protocol:
 
     def reset(self):
         pass
+
+    @staticmethod
+    @abstractmethod
+    def id_from_message(*args):
+        """
+        creates a message id from the given message
+        :param message: message received by a protocol plugin
+        :type message:
+        """
+
+    @staticmethod
+    @abstractmethod
+    def str_from_values(*args):
+        """
+        creates a unique message string from arguments
+        :param args: arguments of protocol plugin messsage
+        :type args: arguments
+        """
+
+    @staticmethod
+    @abstractmethod
+    def values_from_str(message_str):
+        """
+        unpacks values from a message string
+        :param key: message key string
+        :type key: str
+        """
+
+    @staticmethod
+    @abstractmethod
+    def parse_id(message_str):
+        """
+        unpacks message id from a message string
+        :param message_str: key
+        :type message_str: str
+        """
+
+    @staticmethod
+    @abstractmethod
+    def parse_mask(message_str):
+        """
+        unpacks message mask from a message string
+        :param message_str: value mask
+        :type message_str: tuple
+        """

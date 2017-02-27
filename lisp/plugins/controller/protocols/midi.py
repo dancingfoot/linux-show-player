@@ -23,12 +23,14 @@ from PyQt5.QtWidgets import QGroupBox, QPushButton, QComboBox, QVBoxLayout, \
 
 from lisp.modules import check_module
 from lisp.modules.midi.midi_input import MIDIInput
+from lisp.modules.midi.midi_utils import MSGS_ATTRIBUTES
 from lisp.plugins.controller.protocols.protocol import Protocol
 from lisp.ui.qdelegates import ComboBoxDelegate, SpinBoxDelegate, \
     CueActionDelegate
 from lisp.ui.qmodels import SimpleTableModel
 from lisp.ui.settings.settings_page import CueSettingsPage
 from lisp.ui.ui_utils import translate
+from lisp.ui import elogging
 
 
 class Midi(Protocol):
@@ -42,21 +44,65 @@ class Midi(Protocol):
             MIDIInput().new_message.connect(self.__new_message)
 
     def __new_message(self, message):
-        if message.type == 'note_on' or message.type == 'note_off':
-            self.protocol_event.emit(Midi.str_from_message(message))
+        elogging.debug("Protocol: Midi message: {}".format(message))
+        types = {'note_on', 'note_off', 'program_change', 'control_change', 'sysex'}
+        if message.type in types:
+            # self.protocol_event.emit(Midi.key_from_message(message), Midi.__name__, message.bytes().pop())
+            # TODO use id from message
+            self.protocol_event.emit(Midi.__name__, message.type, message.channel, *message.bytes()[1:])
 
     @staticmethod
-    def str_from_message(message):
-        return Midi.str_from_values(message.type, message.channel, message.note)
+    def id_from_message(*args):
+        if len(args):
+            message = args[0]
+            return message.type
+        else:
+            return None
+
+        # message = args[0]
+        # attr = MSGS_ATTRIBUTES[message.type]
+        # val_lst = [message.type]
+        # val_lst.extend([getattr(message, i) for i in attr if i is not None])
+        # return Midi.key_from_values(*val_lst)
+
+    # TODO: update this method
+    # if -1 is at last position -> skip it in message
+    # if -1 in between -> set None
+    @staticmethod
+    def str_from_values(*args):
+        if -1 in args:
+            if all(i < 0 for i in args[args.index(-1):]):
+                return '{0} {1}'.format(args[0], ' '.join((str(i) for i in args[1:] if i > -1)))
+            else:
+                elogging.error("Protocol Midi: cannot create key from value {}".format(args),
+                               details='wildcards should only appear at the end of the message')
+                return ''
+        else:
+            return ' '.join((str(i) for i in args))
 
     @staticmethod
-    def str_from_values(m_type, channel, note):
-        return '{} {} {}'.format(m_type, channel, note)
+    def values_from_str(message_str):
+        if message_str:
+            values = message_str.split()
+            return (values[0], *(int(i) for i in values[1:]))
+        else:
+            return ()
 
     @staticmethod
-    def from_string(message_str):
-        m_type, channel, note = message_str.split()
-        return m_type, int(channel), int(note)
+    def parse_id(message_str):
+        if message_str:
+            values = message_str.split()
+            return values[0]
+        else:
+            return ''
+
+    @staticmethod
+    def parse_mask(message_str):
+        if message_str:
+            values = message_str.split()
+            return tuple(int(i) for i in values[1:])
+        else:
+            return ()
 
 
 class MidiSettings(CueSettingsPage):
