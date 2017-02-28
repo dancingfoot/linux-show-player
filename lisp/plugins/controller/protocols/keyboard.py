@@ -19,20 +19,20 @@
 
 from PyQt5.QtCore import Qt, QT_TRANSLATE_NOOP
 from PyQt5.QtWidgets import QGroupBox, QGridLayout, QTableView, QHeaderView, \
-    QPushButton, QVBoxLayout
+    QPushButton, QVBoxLayout, QKeySequenceEdit, QLabel, QHBoxLayout
 from PyQt5.QtGui import QKeySequence
 
 from lisp.application import Application
+from lisp.core.configuration import config
 from lisp.plugins.controller.protocols.protocol import Protocol
-from lisp.ui.qdelegates import ComboBoxDelegate, LineEditDelegate, \
-    CueActionDelegate
+from lisp.ui.qdelegates import CueActionDelegate, KeySequenceEditDelegate
 from lisp.ui.qmodels import SimpleTableModel
-from lisp.ui.settings.settings_page import CueSettingsPage
+from lisp.ui.settings.settings_page import CueSettingsPage, SettingsPage
 from lisp.ui.ui_utils import translate
+from lisp.plugins.controller.controller_common import ControllerCommon, SessionAction
 
 
 class Keyboard(Protocol):
-
     def init(self):
         Application().layout.key_pressed.connect(self.__key_pressed)
 
@@ -41,7 +41,7 @@ class Keyboard(Protocol):
 
     def __key_pressed(self, key_event):
         if not key_event.isAutoRepeat() and key_event.text() != '':
-            seq = QKeySequence(key_event.key()).toString()
+            seq = QKeySequence(key_event.key()).toString(QKeySequence.NativeText)
             self.protocol_event.emit(Keyboard.__name__.lower(), seq)
 
     @staticmethod
@@ -130,7 +130,6 @@ class KeyboardSettings(CueSettingsPage):
 
 
 class KeyboardView(QTableView):
-
     def __init__(self, cue_class, **kwargs):
         super().__init__(**kwargs)
 
@@ -147,9 +146,50 @@ class KeyboardView(QTableView):
         self.verticalHeader().setDefaultSectionSize(24)
         self.verticalHeader().setHighlightSections(False)
 
-        self.delegates = [LineEditDelegate(max_length=1),
+        self.delegates = [KeySequenceEditDelegate(),
                           CueActionDelegate(cue_class=cue_class,
                                             mode=CueActionDelegate.Mode.Name)]
 
         for column, delegate in enumerate(self.delegates):
             self.setItemDelegateForColumn(column, delegate)
+
+
+class KeyboardAppSettings(SettingsPage):
+    Name = QT_TRANSLATE_NOOP('SettingsPageName', 'Keyboard Settings')
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.setLayout(QVBoxLayout())
+        self.layout().setAlignment(Qt.AlignTop)
+
+        # Keyboard Input
+        self.inputGroup = QGroupBox(self)
+        self.inputGroup.setTitle(
+            translate('ControllerKeyboardSettings', 'Keyboard Settings'))
+        self.inputGroup.setLayout(QGridLayout())
+        self.layout().addWidget(self.inputGroup)
+
+        self.goKeyLabel = QLabel(
+            translate('ControllerKeyboardSettings', 'Go Key'), self.inputGroup)
+        self.inputGroup.layout().addWidget(self.goKeyLabel, 0, 0)
+
+        self.goKeyEdit = QKeySequenceEdit(self.inputGroup)
+        self.inputGroup.layout().addWidget(self.goKeyEdit, 0, 1)
+
+    def get_settings(self):
+        settings = {
+            'go': self.goKeyEdit.keySequence().toString(
+                QKeySequence.NativeText)
+        }
+
+        if settings['go'] != config['Keyboard'][SessionAction.GO.name.lower()]:
+            ControllerCommon().session_action_changed.emit('keyboard', settings['go'], SessionAction.GO)
+
+        return {'Keyboard': settings}
+
+    def load_settings(self, settings):
+        settings = settings.get('Keyboard', {})
+
+        self.goKeyEdit.setKeySequence(
+            QKeySequence(settings.get('go', ''),
+                         QKeySequence.NativeText))

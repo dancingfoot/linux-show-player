@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import QDoubleSpinBox
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QCheckBox, QComboBox, \
     QHBoxLayout, QLabel, QKeySequenceEdit, QGridLayout
 
+from lisp.core.configuration import config
 from lisp.ui.settings.settings_page import SettingsPage
 from lisp.ui.ui_utils import translate
 from lisp.ui.widgets import FadeComboBox
@@ -66,15 +67,15 @@ class ListLayoutSettings(SettingsPage):
         self.endListLayout.addWidget(self.endListBehavior)
         self.endListLayout.setStretch(0, 2)
         self.endListLayout.setStretch(1, 5)
-
-        self.goKeyLayout = QHBoxLayout()
-        self.behaviorsGroup.layout().addLayout(self.goKeyLayout)
-        self.goKeyLabel = QLabel(self.behaviorsGroup)
-        self.goKeyLayout.addWidget(self.goKeyLabel)
-        self.goKeyEdit = QKeySequenceEdit(self.behaviorsGroup)
-        self.goKeyLayout.addWidget(self.goKeyEdit)
-        self.goKeyLayout.setStretch(0, 2)
-        self.goKeyLayout.setStretch(1, 5)
+        #
+        # self.goKeyLayout = QHBoxLayout()
+        # self.behaviorsGroup.layout().addLayout(self.goKeyLayout)
+        # self.goKeyLabel = QLabel(self.behaviorsGroup)
+        # self.goKeyLayout.addWidget(self.goKeyLabel)
+        # self.goKeyEdit = QKeySequenceEdit(self.behaviorsGroup)
+        # self.goKeyLayout.addWidget(self.goKeyEdit)
+        # self.goKeyLayout.setStretch(0, 2)
+        # self.goKeyLayout.setStretch(1, 5)
 
         self.useFadeGroup = QGroupBox(self)
         self.useFadeGroup.setLayout(QGridLayout())
@@ -111,7 +112,7 @@ class ListLayoutSettings(SettingsPage):
         self.showSeek.setText(translate('ListLayout', 'Show seek-bars'))
         self.autoNext.setText(translate('ListLayout', 'Auto-select next cue'))
         self.endListLabel.setText(translate('ListLayout', 'At list end:'))
-        self.goKeyLabel.setText(translate('ListLayout', 'Go key:'))
+        # self.goKeyLabel.setText(translate('ListLayout', 'Go key:'))
 
         self.useFadeGroup.setTitle(translate('ListLayout', 'Use fade'))
         self.stopCueFade.setText(translate('ListLayout', 'Stop Cue'))
@@ -131,8 +132,8 @@ class ListLayoutSettings(SettingsPage):
             'showaccurate': str(self.showAccurate.isChecked()),
             'autocontinue': str(self.autoNext.isChecked()),
             'endlist': str(self.endListBehavior.currentData()),
-            'gokey': self.goKeyEdit.keySequence().toString(
-                QKeySequence.NativeText),
+            # 'gokey': self.goKeyEdit.keySequence().toString(
+            #     QKeySequence.NativeText),
             'stopcuefade': str(self.stopCueFade.isChecked()),
             'pausecuefade': str(self.pauseCueFade.isChecked()),
             'restartcuefade': str(self.restartCueFade.isChecked()),
@@ -155,9 +156,9 @@ class ListLayoutSettings(SettingsPage):
         self.autoNext.setChecked(settings.get('autocontinue') == 'True')
         self.endListBehavior.setCurrentText(
             translate('ListLayout', settings.get('endlist', '')))
-        self.goKeyEdit.setKeySequence(
-            QKeySequence(settings.get('gokey', 'Space'),
-                         QKeySequence.NativeText))
+        # self.goKeyEdit.setKeySequence(
+        #     QKeySequence(settings.get('gokey', 'Space'),
+        #                  QKeySequence.NativeText))
 
         self.stopCueFade.setChecked(settings.get('stopcuefade') == 'True')
         self.pauseCueFade.setChecked(settings.get('pausecuefade') == 'True')

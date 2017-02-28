@@ -84,9 +84,9 @@ class ListLayout(QWidget, CueLayout):
         self._accurate_time = config['ListLayout'].getboolean('ShowAccurate')
         self._auto_continue = config['ListLayout'].getboolean('AutoContinue')
         self._show_playing = config['ListLayout'].getboolean('ShowPlaying')
-        self._go_key = config['ListLayout']['GoKey']
-        self._go_key_sequence = QKeySequence(self._go_key,
-                                             QKeySequence.NativeText)
+        # self._go_key = config['ListLayout']['GoKey']
+        # self._go_key_sequence = QKeySequence(self._go_key,
+        #                                      QKeySequence.NativeText)
 
         try:
             self._end_list = EndListBehavior(config['ListLayout']['EndList'])
@@ -274,14 +274,13 @@ class ListLayout(QWidget, CueLayout):
             if modifiers & Qt.MetaModifier:
                 keys += Qt.META
 
-            if QKeySequence(keys) in self._go_key_sequence:
-                self.go()
-            elif e.key() == Qt.Key_Space:
-                if qApp.keyboardModifiers() == Qt.ShiftModifier:
+            # if QKeySequence(keys) in self._go_key_sequence:
+            #     self.go()
+            if e.key() == Qt.Key_Space and qApp.keyboardModifiers() == Qt.ShiftModifier:
                     cue = self.current_cue()
                     if cue is not None:
                         self.edit_cue(cue)
-                elif qApp.keyboardModifiers() == Qt.ControlModifier:
+            elif e.key() == Qt.Key_Space and qApp.keyboardModifiers() == Qt.ControlModifier:
                     item = self.current_item()
                     if item is not None:
                         item.selected = not item.selected

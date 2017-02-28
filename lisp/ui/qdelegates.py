@@ -19,7 +19,8 @@
 
 from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtWidgets import QStyledItemDelegate, QComboBox, QSpinBox, \
-    QLineEdit, QStyle, QDialog
+    QLineEdit, QStyle, QDialog, QKeySequenceEdit
+from PyQt5.QtGui import QKeySequence
 
 from lisp.application import Application
 from lisp.cues.cue import CueAction
@@ -137,6 +138,25 @@ class LineEditDelegate(QStyledItemDelegate):
 
     def setModelData(self, lineEdit, model, index):
         model.setData(index, lineEdit.text(), Qt.EditRole)
+
+    def updateEditorGeometry(self, editor, option, index):
+        editor.setGeometry(option.rect)
+
+
+class KeySequenceEditDelegate(QStyledItemDelegate):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def createEditor(self, parent, option, index):
+        editor = QKeySequenceEdit(parent)
+        return editor
+
+    def setEditorData(self, key_edit, index):
+        value = index.model().data(index, Qt.EditRole)
+        key_edit.setKeySequence(QKeySequence(value))
+
+    def setModelData(self, key_edit, model, index):
+        model.setData(index, key_edit.keySequence().toString(QKeySequence.NativeText), Qt.EditRole)
 
     def updateEditorGeometry(self, editor, option, index):
         editor.setGeometry(option.rect)

@@ -32,6 +32,8 @@ from lisp.ui import elogging
 from lisp.ui.settings.app_settings import AppSettings
 from lisp.ui.settings.cue_settings import CueSettingsRegistry
 
+# TODO: remove some debug statements
+
 
 class CueHandler:
     def __init__(self, target, action):
@@ -44,6 +46,7 @@ class CueHandler:
         self.action = action
 
     def execute(self, *args):
+        elogging.debug("CueController ".format(self.action, *args))
         self.target.execute(self.action)
 
 
@@ -54,6 +57,7 @@ class SessionHandler:
 
     def execute(self, *args):
         if self.__num_args <= len(args):
+            elogging.debug("SessionController ".format(self.__func, *args[:self.__num_args]))
             self.__func(*args[:self.__num_args])
         else:
             elogging.warning("SessionHandler: could not execute SessionAction - wrong number of Arguments")
@@ -139,6 +143,12 @@ class Controller(Plugin):
                 else:
                     elogging.error("CommonController: no Midi Input settings found in application settings")
 
+            if p_name == 'keyboard':
+                if 'ListLayout' in config:
+                    msg_str = config['Keyboard'].get(SessionAction.GO.name.lower(), '')
+                    if msg_str:
+                        self.session_action_changed(p_name, msg_str, SessionAction.GO)
+
     def reset(self):
         self.__cue_map.clear()
         self.__dispatcher.clear()
@@ -210,13 +220,10 @@ class Controller(Plugin):
         #     if cue in self.__cue_map[msg_str]:
         #         self.__cue_map[msg_str].pop(cue)
 
-                        # TODO: cleanup __dispatcher
         # self.__dispatcher.clean_up()
 
-    # def perform_action(self, key):
     def perform_action(self, protocol, msg_id, *args):
-        print(protocol, msg_id, *args)
-
+        elogging.debug("Controller.perform _action ".format(protocol, msg_id, *args))
         items, mask = self.__dispatcher.item(msg_id, args)
 
         if not items:

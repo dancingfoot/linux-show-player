@@ -259,11 +259,11 @@ class MidiAppSettings(SettingsPage):
         # Midi Input
         self.inputGroup = QGroupBox(self)
         self.inputGroup.setTitle(
-            translate('GlobalControllerSettings', 'MIDI Input'))
+            translate('ControllerMidiSettings', 'MIDI Input'))
         self.inputGroup.setLayout(QGridLayout())
         self.layout().addWidget(self.inputGroup)
 
-        self.channelLabel = QLabel(translate('GlobalControllerSettings', 'Channel'),
+        self.channelLabel = QLabel(translate('ControllerMidiSettings', 'Channel'),
                                    self.inputGroup)
         self.inputGroup.layout().addWidget(self.channelLabel, 0, 0)
         self.channelSpinbox = QSpinBox(self.inputGroup)
