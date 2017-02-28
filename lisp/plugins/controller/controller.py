@@ -26,7 +26,7 @@ from lisp.layouts.cart_layout.layout import CartLayout
 from lisp.layouts.list_layout.layout import ListLayout
 from lisp.plugins.controller import protocols
 from lisp.plugins.controller.controller_common import SessionAction, SessionCallbacks, ControllerCommon
-from lisp.plugins.controller.controller_settings import ControllerSettings
+from lisp.plugins.controller.controller_settings import ControllerSettings, ControllerSessionSettings
 from lisp.plugins.controller.message_dispatcher import MessageDispatcher
 from lisp.ui import elogging
 from lisp.ui.settings.app_settings import AppSettings
@@ -120,8 +120,8 @@ class Controller(Plugin):
         self.__load_protocols()
 
         # Register app settings
-        for settings in protocols.ProtocolsAppSettings:
-            AppSettings.register_settings_widget(settings)
+        # for settings in protocols.ProtocolsAppSettings:
+        AppSettings.register_settings_widget(ControllerSessionSettings)
 
         # ControllerCommon connect to app settings changes
         ControllerCommon().session_action_changed.connect(self.session_action_changed)

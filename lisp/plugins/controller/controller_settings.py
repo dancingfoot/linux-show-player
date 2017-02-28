@@ -21,7 +21,7 @@ from PyQt5.QtCore import QT_TRANSLATE_NOOP
 from PyQt5.QtWidgets import QHBoxLayout, QTabWidget
 
 from lisp.plugins.controller import protocols
-from lisp.ui.settings.settings_page import CueSettingsPage
+from lisp.ui.settings.settings_page import CueSettingsPage, SettingsPage
 from lisp.ui.ui_utils import translate
 
 
@@ -60,5 +60,42 @@ class ControllerSettings(CueSettingsPage):
     def load_settings(self, settings):
         settings = settings.get('controller', {})
 
+        for page in self._pages:
+            page.load_settings(settings)
+
+
+class ControllerSessionSettings(SettingsPage):
+    Name = QT_TRANSLATE_NOOP('SettingsPageName', 'Controller')
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.setLayout(QHBoxLayout())
+
+        self._pages = []
+
+        self.tabWidget = QTabWidget(self)
+        self.layout().addWidget(self.tabWidget)
+
+        for page in protocols.ProtocolsAppSettings:
+            page_widget = page(parent=self)
+
+            self.tabWidget.addTab(page_widget,
+                                  translate('SettingsPageName', page.Name))
+            self._pages.append(page_widget)
+
+        self.tabWidget.setCurrentIndex(0)
+
+    def enable_check(self, enabled):
+        for page in self._pages:
+            page.enable_check(enabled)
+
+    def get_settings(self):
+        settings = {}
+        for page in self._pages:
+            settings.update(page.get_settings())
+
+        return settings
+
+    def load_settings(self, settings):
         for page in self._pages:
             page.load_settings(settings)

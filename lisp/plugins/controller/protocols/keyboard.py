@@ -155,7 +155,7 @@ class KeyboardView(QTableView):
 
 
 class KeyboardAppSettings(SettingsPage):
-    Name = QT_TRANSLATE_NOOP('SettingsPageName', 'Keyboard Settings')
+    Name = QT_TRANSLATE_NOOP('SettingsPageName', 'Keyboard Shortcuts')
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
