@@ -168,7 +168,7 @@ class MessageDispatcher:
         if message_id in self.__keys__:
             if not mask:
                 if not isinstance(self.__keys__.get(message_id, None), dict):
-                    return self.__keys__.get(message_id, None), mask
+                    return (self.__keys__.get(message_id, None),), mask
                 else:
                     return None, mask
             else:
@@ -289,7 +289,7 @@ if __name__ == "__main__":
     # keys.add('/lisp/list/go i', 'GO', (1,))
     # keys.add('/lisp/list/stop i', 'STOP', (1,))
     # keys.add("'/lisp/list/pause' 'i'", 'PAUSE', (None,))
-    # keys.add('Space', 'GO')
+    keys.add('A', d['GO'])
     print("Stored Messages: ", keys.dict)
 
     print("Value OSC PAUSE      ", *keys.item("'/lisp/list/pause' 'i'", (1,)))
@@ -298,32 +298,32 @@ if __name__ == "__main__":
     print("Value (0,1,None,1) ", *keys.item('note_on', (0, 1, None, 1)))
     print("Value (0,1,1)      ", *keys.item('note_on', (0, 1, 1)))
     print("Value (1,3,1)      ", *keys.item('note_on', (1,3,1)))
-    print("Value Space Go     ", *keys.item('Space'))
-    print("Value empty        ", *keys.item('note_on', (0,5,1)))
-    print("size note_on       ", keys.size('note_on'))
-    print("size GO (0,1,None) ", keys.size('note_on', (0, 1, 2)))
-    print("size (0,1)         ", keys.size('note_on', (0, 1)))
-    print("size (0)           ", keys.size('note_on', (0,)))
-    print("size ()            ", keys.size('note_on', ()))
-    # as size is using get_item - size of parent is returned ???
-    print("size (0,1,None,1)  ", keys.size('note_on', (0, 1, None, 1)))
-    print("size (1,3,1)       ", keys.size('note_on', (1,3,1)))
-    print("dict: ", keys.dict)
-
-    print("size ", keys.size('note_on', (1,)))
-
-    print(keys.remove('note_on', (0,2,1)))
-    print("end remove: ", keys.dict)
-
-    print("filter: ", keys.filter((0,3,None), 0, 3, 4, 5))
-
-    print("items: ", [i.cmd for i in keys.item('note_on', (1, 3, 1))[0]], keys.size('note_on', (1,3,1)))
-    d.pop('STOP')
-    print("items: ", [i.cmd for i in keys.item('note_on', (1, 3, 1))[0]], keys.size('note_on', (1,3,1)))
-
-    print("POP PREV ========================")
-    d.pop('PREV')
-    print("POP INTERRUPT ========================")
-    d.pop('INTERRUPT')
-    print("DICT", d)
-    print("==================================================")
+    print("Value Space Go     ", *keys.item('A'))
+    # print("Value empty        ", *keys.item('note_on', (0,5,1)))
+    # print("size note_on       ", keys.size('note_on'))
+    # print("size GO (0,1,None) ", keys.size('note_on', (0, 1, 2)))
+    # print("size (0,1)         ", keys.size('note_on', (0, 1)))
+    # print("size (0)           ", keys.size('note_on', (0,)))
+    # print("size ()            ", keys.size('note_on', ()))
+    # # as size is using get_item - size of parent is returned ???
+    # print("size (0,1,None,1)  ", keys.size('note_on', (0, 1, None, 1)))
+    # print("size (1,3,1)       ", keys.size('note_on', (1,3,1)))
+    # print("dict: ", keys.dict)
+    #
+    # print("size ", keys.size('note_on', (1,)))
+    #
+    # print(keys.remove('note_on', (0,2,1)))
+    # print("end remove: ", keys.dict)
+    #
+    # print("filter: ", keys.filter((0,3,None), 0, 3, 4, 5))
+    #
+    # print("items: ", [i.cmd for i in keys.item('note_on', (1, 3, 1))[0]], keys.size('note_on', (1,3,1)))
+    # d.pop('STOP')
+    # print("items: ", [i.cmd for i in keys.item('note_on', (1, 3, 1))[0]], keys.size('note_on', (1,3,1)))
+    #
+    # print("POP PREV ========================")
+    # d.pop('PREV')
+    # print("POP INTERRUPT ========================")
+    # d.pop('INTERRUPT')
+    # print("DICT", d)
+    # print("==================================================")
