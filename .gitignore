@@ -22,4 +22,4 @@ eggs/
 *.pro
 
 # doc
-# .doc/*
+/doc/

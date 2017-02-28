@@ -18,11 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Linux Show Player.  If not, see <http://www.gnu.org/licenses/>.
 
-from inspect import signature, getfullargspec
 
 from lisp.core.singleton import ABCSingleton
 from enum import Enum
-from lisp.application import Application
 from lisp.layouts.list_layout.layout import ListLayout
 from lisp.layouts.cart_layout.layout import CartLayout
 from lisp.core.signal import Signal

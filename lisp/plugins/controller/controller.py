@@ -140,8 +140,6 @@ class Controller(Plugin):
                     elogging.error("CommonController: no Midi Input settings found in application settings")
 
     def reset(self):
-        # self.__map.clear()
-        # self.__actions_map.clear()
         self.__cue_map.clear()
         self.__dispatcher.clear()
 
@@ -181,25 +179,38 @@ class Controller(Plugin):
             for protocol in self.__protocols:
                 for msg_str, action in value.get(protocol, []):
 
+                    msg_id = self.__protocols[protocol].parse_id(msg_str)
+                    mask = self.__protocols[protocol].parse_mask(msg_str)
+
                     # 1.) store handler with target and action, self.__messages
                     if msg_str not in self.__cue_map:
-                        self.__cue_map[msg_str] = {}
+                        self.__cue_map[(msg_id, mask)] = {}
                     handler = CueHandler(cue, CueAction(action))
-                    self.__cue_map[msg_str][cue] = handler
+                    # key is (msg_id, mask)
+                    # self.__cue_map[msg_str][cue] = handler
+                    self.__cue_map[(msg_id, mask)][cue] = handler
 
                     # 2.) create msg_id and value mask for message and put handler into MessageDispatcher
                     #     MessageDispatcher only holds weakrefs, if the handler is deleted from self.__messages,
                     #     its also removed from the MessageDispatcher
-                    msg_id = self.__protocols[protocol].parse_id(msg_str)
-                    mask = self.__protocols[protocol].parse_mask(msg_str)
+
                     self.__dispatcher.add(msg_id, handler, mask)
 
     def delete_from_map(self, cue):
-        for msg_str in self.__cue_map:
-            if cue in self.__cue_map[msg_str]:
-                self.__cue_map[msg_str].pop(cue)
+        for key in self.__cue_map:
+            if cue in self.__cue_map[key]:
+                self.__cue_map[key].pop(cue)
+            msg_id = key[0]
+            mask = key[1]
+            # remove key if no items
+            # get size
+            # remove
 
-        # TODO: cleanup __dispatcher
+        # for msg_str in self.__cue_map:
+        #     if cue in self.__cue_map[msg_str]:
+        #         self.__cue_map[msg_str].pop(cue)
+
+                        # TODO: cleanup __dispatcher
         # self.__dispatcher.clean_up()
 
     # def perform_action(self, key):
