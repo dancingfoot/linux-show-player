@@ -54,8 +54,8 @@ class OscCommon(metaclass=ABCSingleton):
 
         try:
             self.__srv = ServerThread(int(config['OSC']['inport']))
-            # for cb in self.__callbacks:
             self.__srv.start()
+            self.__srv.add_method(None, None, self.__new_message)
             self.__listening = True
             elogging.info('OSC: Server started ' + self.__srv.url, dialog=False)
         except ServerError as e:
@@ -78,32 +78,5 @@ class OscCommon(metaclass=ABCSingleton):
             target = Address(config['OSC']['hostname'], int(config['OSC']['outport']))
             self.__srv.send(target, path, *args)
 
-    def register_message(self, path, types):
-        key = ', '.join((path, types))
-
-        if key not in self.__reg_counter:
-            self.__reg_counter[key] = 1
-            self.__srv.del_method(None, None)
-            self.__srv.add_method(path, types, self.__new_message)
-            self.__srv.add_method(None, None, self.__unknown_message)
-        else:
-            self.__reg_counter[key] += 1
-
-    def remove_message(self, path, types):
-        key = ', '.join((path, types))
-        if key in self.__reg_counter:
-            if self.__reg_counter[key] > 1:
-                self.__reg_counter -= 1
-                return
-            else:
-                self.__srv.del_method(path, types)
-                self.__reg_counter.pop(key)
-
     def __new_message(self, path, args, types):
-        # self.push_log(path, args, types, src, False)
         self.new_message.emit(path, args, types)
-
-    def __unknown_message(self, path, args, types):
-        # self.push_log(path, args, types, src, False)
-        elogging.warning("OSC: unknown message: {} {} {}".format(path, types, args))
-        # self.new_message.emit(path, args, types)
