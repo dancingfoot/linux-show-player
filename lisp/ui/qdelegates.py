@@ -153,7 +153,7 @@ class KeySequenceEditDelegate(QStyledItemDelegate):
 
     def setEditorData(self, key_edit, index):
         value = index.model().data(index, Qt.EditRole)
-        key_edit.setKeySequence(QKeySequence(value))
+        key_edit.setKeySequence(QKeySequence(value, QKeySequence.NativeText))
 
     def setModelData(self, key_edit, model, index):
         model.setData(index, key_edit.keySequence().toString(QKeySequence.NativeText), Qt.EditRole)

@@ -114,12 +114,15 @@ class KeyboardSettings(CueSettingsPage):
         settings = {}
 
         if not (self.keyGroup.isCheckable() and not self.keyGroup.isChecked()):
+            for row in self.keyboardModel.rows:
+                row[0] = QKeySequence().fromString(row[0], QKeySequence.NativeText).toString(QKeySequence.PortableText)
             settings['keyboard'] = self.keyboardModel.rows
 
         return settings
 
     def load_settings(self, settings):
         for key, action in settings.get('keyboard', []):
+            key = QKeySequence().fromString(key, QKeySequence.PortableText).toString(QKeySequence.NativeText)
             self.keyboardModel.appendRow(key, action)
 
     def __new_key(self):
@@ -179,7 +182,7 @@ class KeyboardAppSettings(SettingsPage):
     def get_settings(self):
         settings = {
             'go': self.goKeyEdit.keySequence().toString(
-                QKeySequence.NativeText)
+                QKeySequence.PortableText)
         }
 
         if settings['go'] != config['Keyboard'][SessionAction.GO.name.lower()]:
