@@ -160,6 +160,15 @@ class Controller(Plugin):
                     if msg_str:
                         self.session_action_changed(p_name, msg_str, SessionAction.GO)
 
+            if p_name == 'osc':
+                if 'OscInput' in config:
+                    for action in SessionAction:
+                        msg_str = config['OscInput'].get(action.name.lower(), '')
+                        if msg_str:
+                            self.session_action_changed(p_name, msg_str, action)
+                else:
+                    elogging.error("CommonController: no Midi Input settings found in application settings")
+
         self.__dispatcher.debug()
 
     def reset(self):
@@ -232,7 +241,7 @@ class Controller(Plugin):
 
         if not items:
             # no handler for incoming message
-            print(self.__dispatcher.debug)
+            print(self.__dispatcher.debug())
             print("Not executing")
             return
 
