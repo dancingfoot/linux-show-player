@@ -41,13 +41,12 @@ class Keyboard(Protocol):
 
     def __key_pressed(self, key_event):
         if not key_event.isAutoRepeat() and key_event.text() != '':
-            seq = QKeySequence(key_event.key()).toString(QKeySequence.NativeText)
-            self.protocol_event.emit(Keyboard.__name__.lower(), seq)
+            self.protocol_event.emit(Keyboard.__name__.lower(), Keyboard.id_from_message(key_event))
 
     @staticmethod
     def id_from_message(*args):
         if len(args):
-            return message
+            return QKeySequence(args[0].key()).toString(QKeySequence.PortableText)
         else:
             return None
 
