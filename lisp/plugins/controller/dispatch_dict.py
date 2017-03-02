@@ -111,7 +111,7 @@ class DispatchDict(collections.UserDict):
         :param msg_id: message id (e.g.: 'note_on', '/osc/path, i', 'Space' ...)
         :type msg_id: str
         :param args: arguments
-        :type args: tuple
+        :type args: *args
         :return: generator ( (handler, (mask)), ...)
         :rtype: generator
         """
@@ -130,23 +130,6 @@ class DispatchDict(collections.UserDict):
                     yield m_dict.__handler, tuple(path[1:])
             else:
                 break
-
-    def size(self, msg_id, mask=()):
-        """
-        searches for mask and returns size of their values
-        :param msg_id: message id
-        :type msg_id: str
-        :param mask: returns size of stored values or -1 if mask or msg_id isn't valid
-        :type mask: tuple
-        :rtype: int
-        """
-        m_dict = self
-        for idx in (msg_id, *mask):
-            if idx in m_dict:
-                m_dict = m_dict[idx]
-            else:
-                return -1
-        return len(m_dict.__handler)
 
     def __cleanup_mask(self, msg_id, mask=()):
         """
@@ -182,7 +165,7 @@ class DispatchDict(collections.UserDict):
         :param mask: mask
         :type mask: tuple
         :param args: *args
-        :type args: *object
+        :type args: *args
         :return: filtered args
         :rtype: tuple
         """
