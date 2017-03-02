@@ -28,32 +28,43 @@ from lisp.plugins.controller import protocols
 from lisp.plugins.controller.controller_common import SessionAction, SessionCallbacks, ControllerCommon
 from lisp.plugins.controller.controller_settings import ControllerSettings, ControllerSessionSettings
 from lisp.plugins.controller.message_dispatcher import MessageDispatcher
+from lisp.plugins.controller.dispatch_dict import DispatchDict, Handler
 from lisp.ui import elogging
 from lisp.ui.settings.app_settings import AppSettings
 from lisp.ui.settings.cue_settings import CueSettingsRegistry
 
-# TODO: remove some debug statements
+# TODO: remove debug statements from Handler and perform_action
 
 
-class CueHandler:
+class CueHandler(Handler):
     def __init__(self, target, action):
+        super().__init__()
         if not isinstance(target, Cue):
             raise TypeError("CueHandler: wrong argument type for handler target {0}".format(type(target)))
         if not type(action) is CueAction:
             raise TypeError("CueHandler: wrong argument type for action {0}".format(type(action)))
 
-        self.target = target
-        self.action = action
+        self.__target = target
+        self.__action = action
+
+    @property
+    def debug(self):
+        return 'Cue: {0} Action: {1}'.format(self.__target.index, self.__action.value)
 
     def execute(self, *args):
-        elogging.debug("CueController ".format(self.action, *args))
-        self.target.execute(self.action)
+        elogging.debug("CueController ".format(self.__action, *args))
+        self.__target.execute(self.__action)
 
 
-class SessionHandler:
+class SessionHandler(Handler):
     def __init__(self, func, num_args):
+        super().__init__()
         self.__func = func
         self.__num_args = num_args
+
+    @property
+    def debug(self):
+        return self.__func.__name__
 
     def execute(self, *args):
         if self.__num_args <= len(args):
@@ -83,6 +94,7 @@ class SessionController:
         self.__cmd_dict = {}
 
     def factory(self, action):
+        print("Sessionhandler factory: ", action)
         if action in self.__cmd_dict:
             func = getattr(Application().layout, self.__cmd_dict[action][0])
             return SessionHandler(func, len(self.__cmd_dict[action][1]))
@@ -101,7 +113,7 @@ class Controller(Plugin):
         # clear these on every new session
         self.__cue_map = {}
         self.__handler_map = {}
-        self.__dispatcher = MessageDispatcher()
+        self.__dispatcher = DispatchDict()
 
         # test
         self.__session_controller = SessionController()
@@ -120,7 +132,6 @@ class Controller(Plugin):
         self.__load_protocols()
 
         # Register app settings
-        # for settings in protocols.ProtocolsAppSettings:
         AppSettings.register_settings_widget(ControllerSessionSettings)
 
         # ControllerCommon connect to app settings changes
@@ -149,9 +160,10 @@ class Controller(Plugin):
                     if msg_str:
                         self.session_action_changed(p_name, msg_str, SessionAction.GO)
 
+        self.__dispatcher.debug()
+
     def reset(self):
         self.__cue_map.clear()
-        self.__dispatcher.clear()
 
         for protocol in self.__protocols.values():
             protocol.reset()
@@ -159,15 +171,16 @@ class Controller(Plugin):
         self.__session_controller.reset()
 
     def session_action_changed(self, p_name, msg_str, action):
-        if action in self.__handler_map:
-            self.__handler_map.pop(action)
-
         msg_id = self.__protocols[p_name].parse_id(msg_str)
         mask = self.__protocols[p_name].parse_mask(msg_str)
 
-        handler = self.__session_controller.factory(action)
+        if action not in self.__handler_map:
+            handler = self.__session_controller.factory(action)
+        else:
+            handler = self.__handler_map[action]
         if handler:
             self.__handler_map[action] = handler
+            print("session_action_changed adding ", msg_str, msg_id, mask)
             self.__dispatcher.add(msg_id, handler, mask)
 
     # Note:
@@ -203,37 +216,33 @@ class Controller(Plugin):
                     # 2.) create msg_id and value mask for message and put handler into MessageDispatcher
                     #     MessageDispatcher only holds weakrefs, if the handler is deleted from self.__messages,
                     #     its also removed from the MessageDispatcher
-
+                    print("cue_changed adding: cue: ", cue, action, msg_id, mask)
                     self.__dispatcher.add(msg_id, handler, mask)
 
     def delete_from_map(self, cue):
         for key in self.__cue_map:
             if cue in self.__cue_map[key]:
                 self.__cue_map[key].pop(cue)
-            msg_id = key[0]
-            mask = key[1]
-            # remove key if no items
-            # get size
-            # remove
-
-        # for msg_str in self.__cue_map:
-        #     if cue in self.__cue_map[msg_str]:
-        #         self.__cue_map[msg_str].pop(cue)
-
-        # self.__dispatcher.clean_up()
 
     def perform_action(self, protocol, msg_id, *args):
-        elogging.debug("Controller.perform _action ".format(protocol, msg_id, *args))
-        items, mask = self.__dispatcher.item(msg_id, args)
+        elogging.debug("Controller.perform _action {0} {1} {2}".format(protocol, msg_id, args))
+
+        items = tuple(self.__dispatcher.get_handler(msg_id, *args))
+        print("get_handler items: ", [i for i in items])
 
         if not items:
             # no handler for incoming message
+            print(self.__dispatcher.debug)
+            print("Not executing")
             return
 
-        args = self.__dispatcher.filter(mask, *args)
+        for w_set, mask in items:
+            for handler in w_set:
+                print(handler.debug, handler, mask)
+                flt_args = self.__dispatcher.filter(mask, *args)
 
-        for handler in items:
-            handler.execute(*args)
+                # for handler in items:
+                handler.execute(*flt_args)
 
     def __cue_added(self, cue):
         cue.property_changed.connect(self.cue_changed)
