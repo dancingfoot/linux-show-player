@@ -310,7 +310,6 @@ class OscSettings(CueSettingsPage):
                 path, types, arg = values_from_str(options[0])
                 self.oscModel.appendRow(path, types, arg, options[1])
 
-    # TODO: fix it
     def capture_message(self):
         OscCommon().new_message.connect(self.__show_message)
         result = self.captureDialog.exec()
@@ -360,7 +359,7 @@ class OscSettings(CueSettingsPage):
             self.oscModel.appendRow(path, types, '{}'.format(arguments)[1:-1], self._default_action)
 
     def __remove_message(self):
-        if self.oscModel.rowCount() and self.OscView.currentIndex().row():
+        if self.oscModel.rowCount() and self.OscView.currentIndex().row() > -1:
             self.oscModel.removeRow(self.OscView.currentIndex().row())
 
 
